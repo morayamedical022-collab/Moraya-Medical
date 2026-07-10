@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>फार्मसी — सेल्स व पर्चेस मॅनेजमेंट</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
+<style>
+  :root{
+    --ink:#17231F; --teal:#0F5C56; --paper:#F6F4EE; --sage:#7C9C90;
+    --marigold:#E8A33D; --rose:#C0453A; --leaf:#3F8556;
+    --display:'Fraunces',serif; --body:'Noto Sans Devanagari','Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--paper);font-family:var(--body);color:var(--ink);}
+  button{font-family:var(--body);}
+  input,select{font-family:var(--body);}
+  button:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--teal);outline-offset:1px;}
+  #app{height:100vh;width:100vw;overflow:hidden;}
+  .btn{cursor:pointer;border:none;border-radius:9px;font-weight:600;font-size:13.5px;padding:11px 18px;}
+  .btn-sm{padding:7px 12px;font-size:12px;border-radius:7px;}
+  .btn-teal{background:var(--teal);color:#fff;}
+  .btn-ink{background:var(--ink);color:#fff;}
+  .btn-rose{background:var(--rose);color:#fff;}
+  .btn-outline{background:#fff;color:var(--ink);border:1.5px solid #E1DCCC;}
+  .card{background:#fff;border-radius:14px;border:1px solid #ECE7D8;padding:20px;}
+  .input{width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid #E1DCCC;font-size:13.5px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;padding:12px 16px;background:#F8F6EF;color:#8A8571;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #ECE7D8;white-space:nowrap;}
+  td{padding:11px 16px;border-bottom:1px solid #F5F2E5;}
+  .clickable{color:var(--teal);cursor:pointer;font-weight:600;text-decoration:underline dotted;}
+  .card-click{cursor:pointer;transition:transform .1s;}
+  .card-click:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.06);}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#D8D2BF;border-radius:8px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{width:34px;height:34px;border:3px solid #DDEAE7;border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+
+  .ssel{position:relative;}
+  .ssel-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #E1DCCC;border-radius:9px;max-height:220px;overflow-y:auto;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.12);}
+  .ssel-item{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #F5F2E5;}
+  .ssel-item:hover{background:#EAF3EF;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(23,35,31,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;}
+  .modal-box{background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:88vh;overflow-y:auto;padding:24px;}
+
+  .grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid-2col-13{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+  .pos-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;height:100%;overflow:hidden;}
+  .med-add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .sidebar{width:230px;background:var(--ink);height:100%;display:flex;flex-direction:column;flex-shrink:0;}
+  .sidebar-nav-label{display:inline;}
+
+  .print-only-holder{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    .printable, .printable *{visibility:visible;}
+    .printable{position:absolute;left:50%;top:0;transform:translateX(-50%);width:auto;max-width:100%;margin:0 auto;}
+    .print-only-holder{display:block !important;}
+    .no-print, .no-print *{display:none !important;}
+    body[data-print-paper="thermal80"] .printable{width:80mm;}
+    body[data-print-paper="thermal58"] .printable{width:58mm;}
+    body[data-print-paper="a4"] .printable{width:190mm;}
+  }
+
+  @media (max-width:860px){
+    #app{height:auto;min-height:100vh;overflow:auto;}
+    body{overflow-x:hidden;}
+    .grid-cards{grid-template-columns:repeat(2,1fr);}
+    .grid-2col, .grid-2col-13{grid-template-columns:1fr;}
+    .pos-grid{grid-template-columns:1fr;height:auto;overflow:visible;}
+    .med-add-grid{grid-template-columns:repeat(2,1fr);}
+    .app-shell{flex-direction:column;height:auto !important;}
+    .sidebar{display:none !important;} /* मोबाईलवर जुनी साईडबार पूर्ण लपवली — hamburger मेनू वापरतो */
+    .mobile-only{display:flex !important;align-items:center;justify-content:center;}
+    .content-col{min-width:0;}
+    .topbar-sub{display:none;}
+    table{font-size:11px;}
+    th,td{padding:7px 6px;}
+    .card{padding:14px !important;}
+    .btn{padding:10px 12px !important;font-size:13px !important;border-radius:10px !important;}
+    .input{font-size:14px !important;} /* iOS वर zoom होऊ नये म्हणून 14px+ */
+  }
+  @media (max-width:480px){
+    .grid-cards{grid-template-columns:1fr;}
+    .med-add-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+   CONFIG — इथे तुमचा Google Apps Script Web App URL टाका
+========================================================= */
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyog2FgPUN6-XIRIvr8pbGi_DRc4kmaiZk85_YXpO4Oilrnosk6ee9dFPx7j3oFEuzh/exec";
+if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+/* ================= SEED DATA ================= */
+const seedMedicines = [
+  { id:"M001", name:"Crocin 500mg", salt:"Paracetamol 500mg", mfr:"GSK", batch:"CR2401", expiry:"2026-11-30", mrp:22, cost:15, stock:42, reorder:15, barcode:"8901030575014", stripSize:15, unit:"Tablet", purchased:true },
+  { id:"M002", name:"Azithral 500", salt:"Azithromycin 500mg", mfr:"Alembic", batch:"AZ0987", expiry:"2026-08-15", mrp:118, cost:82, stock:4, reorder:10, barcode:"8901030575021", stripSize:5, unit:"Strip", purchased:true },
+  { id:"M003", name:"Pantop 40", salt:"Pantoprazole 40mg", mfr:"Aristo", batch:"PT1123", expiry:"2027-02-10", mrp:88, cost:60, stock:26, reorder:12, barcode:"8901030575038", stripSize:10, unit:"Tablet", purchased:true },
+  { id:"M004", name:"Combiflam", salt:"Ibuprofen + Paracetamol", mfr:"Sanofi", batch:"CF3390", expiry:"2026-07-20", mrp:32, cost:20, stock:3, reorder:15, barcode:"8901030575045", stripSize:10 },
+  { id:"M005", name:"Volini Gel", salt:"Diclofenac Diethylamine", mfr:"Sun Pharma", batch:"VG7761", expiry:"2027-05-01", mrp:145, cost:105, stock:18, reorder:8, barcode:"8901030575052", stripSize:1 },
+  { id:"M006", name:"Zincovit", salt:"Multivitamin + Zinc", mfr:"Apex", batch:"ZV5540", expiry:"2026-12-25", mrp:98, cost:70, stock:30, reorder:10, barcode:"8901030575069", stripSize:15 },
+];
+const seedVendors = [
+  { id:"V01", name:"Shreeji Distributors", address:"शिवाजी पेठ, कोल्हापूर", phone:"9822011223", email:"", contactPerson:"", contactPhone:"", dlNo:"", gst:"27ABCDE1234F1Z5", vatTin:"", pan:"", outstanding:12400, payments:[] },
+  { id:"V02", name:"Om Pharma Agency", address:"राजारामपुरी, कोल्हापूर", phone:"9876543210", email:"", contactPerson:"", contactPhone:"", dlNo:"", gst:"27PQRSX5678K1Z2", vatTin:"", pan:"", outstanding:3200, payments:[] },
+  { id:"V03", name:"Kolhapur Medical Supply", address:"स्टेशन रोड, कोल्हापूर", phone:"9765432109", email:"", contactPerson:"", contactPhone:"", dlNo:"", gst:"27LMNOP9012A1Z9", vatTin:"", pan:"", outstanding:0, payments:[] },
+];
+const seedKhata = [
+  { id:"K01", name:"सुरेश पाटील", phone:"9890011223", balance:640, payments:[] },
+  { id:"K02", name:"अनिता जोशी", phone:"9822334455", balance:210, payments:[] },
+];
+const seedSettings = { shopName:"श्री फार्मसी", address:"कोल्हापूर, महाराष्ट्र", owner:"मालकाचे नाव", ownerPhone:"9999999999", gstin:"27XXXXX1234X1Z5", logo:"", upiId:"", developer:"App विकसक: तुमची टीम", printPaper:"thermal80" };
+const seedUsers = [
+  { phone:"9000000001", role:"user", label:"बिलिंग स्टाफ" },
+  { phone:"9000000002", role:"admin", label:"दुकान मालक" },
+  { phone:"9000000003", role:"developer", label:"डेव्हलपर" },
+];
+const roleLabel = { user:"युजर", admin:"ॲडमिन", developer:"डेव्हलपर" };
+const roleColor = { user:"#7C9C90", admin:"#E8A33D", developer:"#0F5C56" };
+
+/* ================= HELPERS ================= */
+const fmtINR = n => "₹" + Number(n || 0).toLocaleString("en-IN");
+const daysLeft = d => Math.ceil((new Date(d) - new Date()) / 86400000);
+const expiryLabel = d => daysLeft(d) < 0 ? "एक्सपायर झाले" : `लवकरच - ${daysLeft(d)} दिवस`;
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = p => p + Date.now().toString(36) + Math.floor(Math.random()*999);
+const UNIT_TYPES = ["Ampoule","Bottle","Box","Capsule","Inhaler","Kit","Packet","Strip","Tablet","Tin","Tube","Unit","Vial"];
+function unitOptionsHTML(selected){ return UNIT_TYPES.map(u=>`<option value="${u}" ${selected===u?"selected":""}>${u}</option>`).join(""); }
+const todayStr = () => new Date().toISOString().slice(0,10);
+function isToday(dateStr){ return (dateStr||"").slice(0,10) === todayStr(); }
+
+function availableToReturn(medId){
+  const purchased = state.purchases.filter(p=>p.medId===medId).reduce((s,p)=>s+Number(p.qty||0),0);
+  const sold = state.sales.reduce((s,sale)=>s + (sale.items||[]).filter(i=>i.id===medId).reduce((ss,i)=>ss+Number(i.qty||0),0), 0);
+  const alreadyReturned = state.returns.filter(r=>r.medId===medId).reduce((s,r)=>s+Number(r.qty||0),0);
+  return Math.max(0, purchased - sold - alreadyReturned);
+}
+
+function downloadCSV(filename, rows){
+  if(!rows.length) return alert("या प्रकारासाठी डेटा उपलब्ध नाही.");
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(","), ...rows.map(r => headers.map(h => `"${String(r[h]==null?'':r[h]).replace(/"/g,'""')}"`).join(","))].join("\n");
+  const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
+  triggerDownload(blob, filename);
+}
+function downloadExcel(filename, rows){
+  if(!rows.length) return alert("या प्रकारासाठी डेटा उपलब्ध नाही.");
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Report");
+  XLSX.writeFile(wb, filename);
+}
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function downloadJSONBackup(){
+  const bundle = { exportedAt:new Date().toISOString(), medicines:state.medicines, vendors:state.vendors, sales:state.sales, purchases:state.purchases, khata:state.khata, returns:state.returns, settings:state.settings, users:state.users };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type:"application/json" });
+  triggerDownload(blob, `pharmacy-backup-${todayStr()}.json`);
+}
+function printSection(){ window.print(); }
+
+/* ============ UPI पेमेंट QR कोड (रक्कम व बिल नंबरसह डायनॅमिक) ============ */
+function buildUPIQRDataURL(amount, note){
+  if(!state.settings.upiId || !window.qrcode) return null;
+  try{
+    const upiLink = `upi://pay?pa=${encodeURIComponent(state.settings.upiId)}&pn=${encodeURIComponent(state.settings.shopName||'Shop')}&am=${Number(amount||0).toFixed(2)}&cu=INR&tn=${encodeURIComponent(note||'')}`;
+    const qr = qrcode(0, 'M');
+    qr.addData(upiLink);
+    qr.make();
+    return qr.createDataURL(6, 4);
+  }catch(e){ console.warn("QR तयार करताना अडचण:", e); return null; }
+}
+function upiQRBlockHTML(amount, note, label){
+  const url = buildUPIQRDataURL(amount, note);
+  if(!url) return "";
+  return `<div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px dashed #C9C2A9;">
+    <div style="font-size:11px;color:#8A8571;margin-bottom:6px;">${label || 'UPI ने पेमेंट करण्यासाठी स्कॅन करा'}</div>
+    <img src="${url}" style="width:120px;height:120px;" />
+    <div style="font-size:11px;font-weight:700;margin-top:4px;">₹${Number(amount||0).toLocaleString("en-IN")} — ${esc(state.settings.upiId)}</div>
+  </div>`;
+}
+// बिलाच्या हेडिंगमध्ये (लोगोच्या विरुद्ध बाजूला) दाखवण्यासाठी छोटा QR — UPI ID ची ओळ नाही
+function upiQRHeadingHTML(amount, note){
+  const url = buildUPIQRDataURL(amount, note);
+  if(!url) return "";
+  return `<div style="text-align:center;flex-shrink:0;">
+    <img src="${url}" style="width:52px;height:52px;" />
+    <div style="font-size:9px;font-weight:700;margin-top:2px;">₹${Number(amount||0).toLocaleString("en-IN")}</div>
+  </div>`;
+}
+
+/* ============ ग्राहक Unique ओळखणे (फोन असल्यास फोनवरून, नाहीतर नावावरून) ============ */
+function findCustomer(name, phone){
+  name = (name||"").trim(); phone = (phone||"").trim();
+  if(phone) { const byPhone = state.khata.find(k=>(k.phone||"").trim()===phone); if(byPhone) return byPhone; }
+  if(name) { const byName = state.khata.find(k=>(k.name||"").trim().toLowerCase()===name.toLowerCase()); if(byName) return byName; }
+  return null;
+}
+function getOrCreateCustomer(name, phone){
+  name = (name||"").trim() || "Walk-in";
+  const existing = findCustomer(name, phone);
+  if(existing){ if(phone && !existing.phone) existing.phone = phone; return existing; }
+  const c = { id:"K"+uid(""), name, phone: phone||"-", balance:0, payments:[] };
+  state.khata.push(c);
+  return c;
+}
+
+/* ============ बिल (POS पावती) साठी स्वतंत्र प्रिंट/PDF टेम्प्लेट ============ */
+function buildBillPrintHTML(sale){
+  const total = (sale.items||[]).reduce((s,x)=>s+x.qty*x.mrp,0);
+  return `
+  <div class="printable" style="background:#fff;padding:26px;font-family:'Noto Sans Devanagari','Inter',sans-serif;color:#000;max-width:420px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      ${upiQRHeadingHTML(total, "Bill-"+sale.id)}
+      <div style="text-align:center;flex:1;">
+        <div style="font-weight:800;font-size:19px;color:#AD1457;">${esc(state.settings.shopName)}</div>
+        <div style="font-weight:700;font-size:11px;color:#B71C1C;">${esc(state.settings.address)}</div>
+        <div style="font-size:10px;color:#000;margin-top:2px;">मालक मोबाईल: ${esc(state.settings.ownerPhone||'-')} · GSTIN: ${esc(state.settings.gstin)}</div>
+      </div>
+      <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:10px;">
+        ${state.settings.logo ? `<img src="${state.settings.logo}" style="max-width:36px;max-height:36px;object-fit:contain;"/>` : ""}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#000;margin:12px 0 10px;border-top:1px dashed #999;padding-top:8px;">
+      <div>दिनांक: ${new Date(sale.date).toLocaleString("en-IN")}</div>
+      <div>बिल नं: ${esc(sale.id)}</div>
+    </div>
+    <div style="font-size:11.5px;margin-bottom:8px;">ग्राहक: ${esc(sale.customer)} ${sale.customerPhone && sale.customerPhone!=='-' ? "· " + esc(sale.customerPhone) : ""} · चॅनेल: ${sale.channel==='walkin'?'काउंटर':'ऑनलाईन'}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <thead><tr><th style="text-align:left;border-bottom:1px solid #000;padding:4px;">औषध</th><th style="text-align:right;border-bottom:1px solid #000;padding:4px;">नग</th><th style="text-align:right;border-bottom:1px solid #000;padding:4px;">रक्कम</th></tr></thead>
+      <tbody>${(sale.items||[]).map(it=>`<tr><td style="padding:4px;">${esc(it.name)}</td><td style="text-align:right;padding:4px;">${it.qty}</td><td style="text-align:right;padding:4px;">${fmtINR(it.qty*it.mrp)}</td></tr>`).join("")}</tbody>
+    </table>
+    <div style="border-top:1px dashed #999;margin:10px 0;"></div>
+    <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px;"><span>एकूण (AMOUNT)</span><span>${fmtINR(total)}</span></div>
+    <div style="margin-top:40px;display:flex;justify-content:flex-end;"><div style="border-top:1px solid #000;width:150px;text-align:center;padding-top:4px;font-size:10.5px;">सही (Signature)</div></div>
+  </div>`;
+}
+function printBill(sale){
+  const holder = document.getElementById("style-print-area") || document.createElement("div");
+  holder.id = "style-print-area";
+  holder.className = "print-only-holder";
+  holder.innerHTML = buildBillPrintHTML(sale);
+  if(!holder.parentNode) document.body.appendChild(holder);
+  window.print();
+}
+async function downloadBillPDF(sale){
+  const holder = document.createElement("div");
+  holder.style.position = "fixed"; holder.style.left = "-9999px"; holder.style.top = "0"; holder.style.width = "460px";
+  holder.innerHTML = buildBillPrintHTML(sale);
+  document.body.appendChild(holder);
+  try{
+    const canvas = await html2canvas(holder, { scale:2, backgroundColor:"#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:"pt", format:[canvas.width/2 + 40, canvas.height/2 + 40] });
+    pdf.addImage(imgData, "PNG", 20, 20, canvas.width/2, canvas.height/2);
+    pdf.save(`bill-${sale.id}.pdf`);
+  } finally { document.body.removeChild(holder); }
+}
+function openBillModal(saleId, backToCustomerId){
+  const sale = state.sales.find(s=>s.id===saleId);
+  if(!sale) return;
+  document.getElementById("modal-root").innerHTML = `
+  <div class="modal-backdrop" id="modal-bg">
+    <div class="modal-box" style="max-width:480px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        ${backToCustomerId ? `<button class="btn btn-sm btn-outline" id="bill-back">← मागे</button>` : `<div></div>`}
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-outline" id="bill-print">🖨 प्रिंट</button>
+          <button class="btn btn-sm btn-outline" id="bill-pdf">⬇ PDF</button>
+          <button class="btn btn-sm btn-outline" id="modal-close">✕</button>
+        </div>
+      </div>
+      <div style="border:1px solid #ECE7D8;border-radius:10px;overflow:hidden;">${buildBillPrintHTML(sale)}</div>
+    </div>
+  </div>`;
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("bill-print").addEventListener("click", ()=>printBill(sale));
+  document.getElementById("bill-pdf").addEventListener("click", ()=>downloadBillPDF(sale));
+  document.getElementById("modal-bg").addEventListener("click", e=>{ if(e.target.id==="modal-bg") closeModal(); });
+  const back = document.getElementById("bill-back");
+  if(back) back.addEventListener("click", ()=>openCustomerHistory(backToCustomerId));
+}
+
+/* ============ प्रोफेशनल प्रिंट टेम्प्लेट (हेडर/पत्ता/तारीख-बिल/टेबल/बेरीज/सही) ============ */
+function buildPrintTemplate(title, rows, opts){
+  opts = opts || {};
+  const total = opts.totalKey ? rows.reduce((s,r)=>s+Number(r[opts.totalKey]||0),0) : null;
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  return `
+  <div class="printable" style="background:#fff;padding:26px;font-family:'Noto Sans Devanagari','Inter',sans-serif;color:#000;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div style="width:64px;"></div>
+      <div style="text-align:center;flex:1;">
+        <div style="font-weight:700;font-size:18px;color:#AD1457;">${esc(state.settings.shopName)}</div>
+        <div style="font-weight:700;font-size:12px;color:#B71C1C;">${esc(state.settings.address)}</div>
+      </div>
+      <div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
+        ${state.settings.logo ? `<img src="${state.settings.logo}" style="max-width:64px;max-height:64px;object-fit:contain;"/>` : ""}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#000;margin:14px 0 18px;">
+      <div>दिनांक: ${opts.date || new Date().toLocaleDateString("en-IN")}</div>
+      <div>${opts.billNo ? "बिल नं: " + esc(opts.billNo) : "रिपोर्ट: " + esc(title)}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <thead><tr>${headers.map(h=>`<th style="border:1px solid #ccc;padding:6px 8px;background:#F3F3F3;text-align:left;">${esc(h)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.length ? rows.map(r=>`<tr>${headers.map(h=>`<td style="border:1px solid #ddd;padding:6px 8px;">${esc(r[h])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length||1}" style="text-align:center;padding:16px;color:#999;">डेटा उपलब्ध नाही</td></tr>`}</tbody>
+    </table>
+    ${total!==null ? `<div style="text-align:right;font-weight:700;margin-top:12px;font-size:13px;">एकूण: ${fmtINR(total)}</div>` : ""}
+    <div style="margin-top:60px;display:flex;justify-content:flex-end;">
+      <div style="border-top:1px solid #000;width:170px;text-align:center;padding-top:4px;font-size:11px;">सही (Signature)</div>
+    </div>
+  </div>`;
+}
+/** html2canvas द्वारे वरील टेम्प्लेट रास्टराइझ करून खरा Unicode/मराठी सपोर्ट असलेली PDF तयार करते */
+async function downloadPDFStyled(filename, title, rows, opts){
+  if(!rows.length){ alert("या प्रकारासाठी डेटा उपलब्ध नाही."); return; }
+  const holder = document.createElement("div");
+  holder.style.position = "fixed"; holder.style.left = "-9999px"; holder.style.top = "0"; holder.style.width = "780px";
+  holder.innerHTML = buildPrintTemplate(title, rows, opts);
+  document.body.appendChild(holder);
+  try{
+    const canvas = await html2canvas(holder, { scale:2, backgroundColor:"#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:"pt", format:"a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const imgW = pageW - 40;
+    const imgH = canvas.height * (imgW / canvas.width);
+    let heightLeft = imgH, position = 20;
+    pdf.addImage(imgData, "PNG", 20, position, imgW, imgH);
+    heightLeft -= (pdf.internal.pageSize.getHeight() - 40);
+    while(heightLeft > 0){
+      position = heightLeft - imgH + 20;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 20, position, imgW, imgH);
+      heightLeft -= (pdf.internal.pageSize.getHeight() - 40);
+    }
+    pdf.save(filename);
+  } finally { document.body.removeChild(holder); }
+}
+function printStyled(title, rows, opts){
+  const holder = document.getElementById("style-print-area") || document.createElement("div");
+  holder.id = "style-print-area";
+  holder.className = "print-only-holder";
+  holder.innerHTML = buildPrintTemplate(title, rows, opts);
+  if(!holder.parentNode) document.body.appendChild(holder);
+  window.print();
+}
+
+/* ================= SEARCHABLE DROPDOWN COMPONENT ================= */
+function searchSelectHTML(id, options, selectedValue, placeholder, heading){
+  const sel = options.find(o=>String(o.value)===String(selectedValue));
+  return `<div class="ssel" id="wrap-${id}">
+    ${heading ? `<label style="font-size:11px;color:#8A8571;font-weight:600;display:block;margin-bottom:4px;">${esc(heading)}</label>` : ""}
+    <input type="text" class="input" id="${id}-input" autocomplete="off" placeholder="${placeholder||'टाईप करून शोधा...'}" value="${esc(sel?sel.label:'')}" data-value="${selectedValue||''}" />
+    <div class="ssel-list" id="${id}-list" style="display:none;"></div>
+  </div>`;
+}
+function bindSearchSelect(id, options, onSelect){
+  const input = document.getElementById(id+"-input");
+  const list = document.getElementById(id+"-list");
+  if(!input || !list) return;
+  function draw(filterText){
+    const f = (filterText||"").toLowerCase();
+    if(!f){ list.style.display = "none"; list.innerHTML = ""; return; } // टाईप करेपर्यंत यादी दाखवायची नाही
+    const filtered = options.filter(o=>o.label.toLowerCase().includes(f));
+    list.innerHTML = filtered.length ? filtered.map(o=>`<div class="ssel-item" data-val="${esc(o.value)}">${esc(o.label)}</div>`).join("")
+      : `<div class="ssel-item" style="color:#B0AB96;">काही सापडले नाही</div>`;
+    list.style.display = "block";
+    list.querySelectorAll("[data-val]").forEach(el=>el.addEventListener("mousedown", e=>{
+      e.preventDefault();
+      const val = el.dataset.val;
+      const opt = options.find(o=>String(o.value)===val);
+      input.value = opt ? opt.label : "";
+      input.dataset.value = val;
+      list.style.display = "none";
+      onSelect(val);
+    }));
+  }
+  input.addEventListener("focus", ()=>draw(input.value));
+  input.addEventListener("input", ()=>{ input.dataset.value=""; draw(input.value); });
+  input.addEventListener("blur", ()=>setTimeout(()=>{ list.style.display="none"; }, 160));
+}
+function setSelectValue(id, value, label){
+  const input = document.getElementById(id+"-input");
+  if(!input) return;
+  input.value = label || ""; input.dataset.value = value || "";
+}
+
+/* ================= GOOGLE SHEET SYNC ================= */
+let saveTimer = null;
+let syncing = false;
+
+let lastSheetError = "";
+async function loadFromSheet(){
+  if(!SHEET_API_URL || SHEET_API_URL.indexOf("PASTE_YOUR") === 0) return "not-configured";
+  try{
+    const res = await fetch(SHEET_API_URL + "?action=load", { method:"GET" });
+    if(!res.ok){ lastSheetError = "HTTP " + res.status; return "failed"; }
+    const json = await res.json();
+    if(json.status === "ok"){
+      const d = json.data || {};
+      if(d.Medicines && d.Medicines.length) state.medicines = d.Medicines;
+      if(d.Vendors && d.Vendors.length) state.vendors = d.Vendors;
+      if(d.Sales) state.sales = d.Sales;
+      if(d.Purchases) state.purchases = d.Purchases;
+      if(d.Khata && d.Khata.length) state.khata = d.Khata;
+      if(d.Returns) state.returns = d.Returns;
+      if(d.Settings && d.Settings.length) state.settings = Object.assign({}, seedSettings, d.Settings[0]);
+      if(d.Users && d.Users.length) state.users = d.Users.map(u=>({...u, phone:String(u.phone).trim()}));
+      return "success";
+    }
+    lastSheetError = json.message || "अज्ञात एरर";
+    return "failed";
+  }catch(e){ lastSheetError = String(e); console.warn("Sheet load अयशस्वी:", e); return "failed"; }
+}
+// टीप: navigator.onLine वर विसंबून राहणे धोकादायक आहे — अनेक मोबाईल ब्राउझर/वेबव्ह्यूमध्ये ते चुकीचे "false" दाखवते
+// आणि त्यामुळे सेव्हच कधीच प्रयत्न होत नाही (हाच बग "सेटिंग शीटवर जात नाही" आणि "सिंक होत आहे..." कायम दिसण्यामागचं खरं कारण होता).
+// त्यामुळे आता आम्ही नेहमी प्रत्यक्ष प्रयत्न (fetch) करतो; तो खरंच फेल झाला तरच पुन्हा-प्रयत्न (retry) करतो.
+let lastSyncError = null;
+let retryTimer = null;
+function queueSaveToSheet(immediate){
+  clearTimeout(saveTimer);
+  if(immediate) return saveToSheet();
+  saveTimer = setTimeout(saveToSheet, 400);
+}
+let saveInFlight = false;
+let saveAgainNeeded = false;
+async function saveToSheet(){
+  if(!SHEET_API_URL || SHEET_API_URL.indexOf("PASTE_YOUR") === 0) return;
+  if(saveInFlight){ saveAgainNeeded = true; return; } // आधीचा save चालू असेल तर रांगेत टाका, ओव्हरलॅप टाळा
+  saveInFlight = true;
+  syncing = true; lastSyncError = null; renderSyncBadge();
+  try{
+    const res = await fetch(SHEET_API_URL, {
+      method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        Medicines: state.medicines, Vendors: state.vendors, Sales: state.sales,
+        Purchases: state.purchases, Khata: state.khata, Returns: state.returns,
+        Settings: [state.settings], Users: state.users,
+      })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json().catch(()=>null);
+    if(j && j.status === "error") throw new Error(j.message || "सर्व्हरने एरर दिली");
+    localStorage.removeItem("pendingSync");
+    clearTimeout(retryTimer);
+  }catch(e){
+    console.warn("Sheet save अयशस्वी:", e);
+    lastSyncError = (e && e.message) ? e.message : String(e);
+    localStorage.setItem("pendingSync", "1");
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(()=>{ saveAgainNeeded=true; if(!saveInFlight) saveToSheet(); }, 5000); // ५ सेकंदांनी आपोआप पुन्हा प्रयत्न — 'online' इव्हेंटवर अवलंबून राहत नाही
+  }
+  saveInFlight = false;
+  if(saveAgainNeeded){ saveAgainNeeded = false; return saveToSheet(); } // दरम्यान बदल झाला असेल तर पुन्हा नव्या स्थितीसह save करा
+  syncing = false; renderSyncBadge();
+}
+window.addEventListener("online", ()=>{ if(localStorage.getItem("pendingSync")==="1"){ queueSaveToSheet(true); } renderSyncBadge(); });
+window.addEventListener("offline", renderSyncBadge);
+async function backupToDriveNow(){
+  if(!SHEET_API_URL || SHEET_API_URL.indexOf("PASTE_YOUR") === 0){ alert("आधी Settings मध्ये Google Sheet सिंक कॉन्फिगर करा."); return; }
+  try{
+    const res = await fetch(SHEET_API_URL + "?action=backupDrive");
+    const json = await res.json();
+    if(json.status === "ok") alert("Drive वर बॅकअप यशस्वी झाला ✅");
+    else alert("बॅकअप अयशस्वी: " + json.message);
+  }catch(e){ alert("बॅकअप अयशस्वी: " + e); }
+}
+
+/* ================= STATE ================= */
+const state = {
+  auth: null,
+  screen: "dashboard",
+  mobileMenuOpen: false,
+  medicines: JSON.parse(JSON.stringify(seedMedicines)),
+  vendors: JSON.parse(JSON.stringify(seedVendors)),
+  sales: [],
+  purchases: [],
+  khata: JSON.parse(JSON.stringify(seedKhata)),
+  returns: [],
+  settings: JSON.parse(JSON.stringify(seedSettings)),
+  users: JSON.parse(JSON.stringify(seedUsers)),
+  cart: [],
+  posChannel: "walkin",
+  posCustomer: "",
+  posCustomerPhone: "",
+  posOnKhata: false,
+  posSelectedMedId: "",
+  posToast: "",
+  lastBill: null,
+  editingSaleId: null,
+  oldBillQuery: "",
+  medQuery: "",
+  medShowAdd: false,
+  newMed: { name:"",salt:"",mfr:"",mrp:"",cost:"",stock:"",reorder:10,batch:"",expiry:"",barcode:"",stripSize:1,unit:"Tablet" },
+  purchTab: "order",
+  purchForm: null,
+  returnForm: null,
+  newVendor: { name:"", address:"", phone:"", email:"", contactPerson:"", contactPhone:"", dlNo:"", gst:"", vatTin:"", pan:"", outstanding:0 },
+  showAddVendor:false,
+  reportType: "sales",
+  reportPeriod: "daily",
+  reportPreview: null,
+  newUserForm: { phone:"", role:"user" },
+  bootReady: false,
+  sheetLoadStatus: "not-configured",
+};
+function mutate(fn, immediateSync){ fn(); queueSaveToSheet(immediateSync); }
+
+/* ================= APP SHELL ================= */
+const app = document.getElementById("app");
+
+async function boot(){
+  app.innerHTML = renderLoading();
+  const status = await loadFromSheet();
+  state.sheetLoadStatus = status;
+  state.bootReady = true;
+  render();
+}
+async function retryBoot(){
+  state.bootReady = false;
+  render();
+  const status = await loadFromSheet();
+  state.sheetLoadStatus = status;
+  state.bootReady = true;
+  render();
+}
+
+function render(){
+  if(!state.bootReady){ app.innerHTML = renderLoading(); return; }
+  if(!state.auth){ app.innerHTML = renderLogin(); bindLogin(); return; }
+  document.body.setAttribute("data-print-paper", (state.settings && state.settings.printPaper) || "thermal80");
+  app.innerHTML = `
+    <div class="app-shell" style="display:flex;height:100vh;background:var(--paper);">
+      ${renderSidebar()}
+      <div class="content-col" style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        ${renderTopbar()}
+        <div id="screen-root" style="flex:1;overflow:${state.screen==='pos' ? 'hidden' : 'auto'};display:flex;flex-direction:column;">
+          ${renderScreen()}
+        </div>
+      </div>
+    </div>
+    <div id="modal-root"></div>
+  `;
+  bindShell();
+  bindScreen();
+}
+function renderSyncBadge(){ const el = document.getElementById("sync-badge"); if(el) el.innerHTML = syncBadgeHTML(); }
+function syncBadgeHTML(){
+  const configured = SHEET_API_URL.indexOf("PASTE_YOUR") !== 0;
+  if(!configured) return `<span>⚠️</span> Sheet सिंक कॉन्फिगर नाही`;
+  if(syncing) return `<span>📶</span> सिंक होत आहे...`;
+  if(localStorage.getItem("pendingSync")==="1") return `<span title="${esc(lastSyncError||'')}" style="color:var(--rose);cursor:help;">❌</span> सिंक फेल — ५ सेकंदांत पुन्हा प्रयत्न ${lastSyncError ? '('+esc(lastSyncError).slice(0,40)+')' : ''}`;
+  return `<span>📶</span> ऑटो-सिंक चालू`;
+}
+
+/* ================= LOGIN ================= */
+function loginSyncBannerHTML(){
+  if(state.sheetLoadStatus === "success") return `<div style="background:#EAF7EF;color:var(--leaf);padding:9px 12px;border-radius:9px;font-size:11.5px;margin-bottom:14px;text-align:center;">✔ या डिव्हाईसवर Google Sheet मधील ताजा डेटा व युजर यादी लोड झाली आहे.</div>`;
+  if(state.sheetLoadStatus === "not-configured") return `<div style="background:#FEF3E1;color:#8A6D1F;padding:9px 12px;border-radius:9px;font-size:11.5px;margin-bottom:14px;text-align:center;">⚠️ Google Sheet सिंक अद्याप कॉन्फिगर केलेले नाही — फक्त याच डिव्हाईसवरील डेटा वापरला जाईल. Developer कडून index.html मधील SHEET_API_URL सेट करा.</div>`;
+  return `<div style="background:#FBEAE8;color:var(--rose);padding:9px 12px;border-radius:9px;font-size:11.5px;margin-bottom:14px;">
+    ⚠️ Google Sheet शी जोडणी होऊ शकली नाही, त्यामुळे या डिव्हाईसवर जुनी/स्थानिक युजर यादी वापरली जात आहे — इतर डिव्हाईसवरून जोडलेले मोबाईल नंबर इथे दिसणार नाहीत.<br/>
+    <b>शक्य कारणे:</b> इंटरनेट कनेक्शन नाही, किंवा Apps Script Deployment मध्ये "Who has access: Anyone" सेट केलेले नाही.
+    <div style="margin-top:8px;"><button id="retry-sync" class="btn btn-sm btn-outline" style="width:100%;">🔄 पुन्हा प्रयत्न करा</button></div>
+  </div>`;
+}
+function renderLogin(){
+  return `
+  <div style="min-height:100vh;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="width:400px;max-width:100%;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="width:52px;height:52px;border-radius:14px;background:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px;overflow:hidden;">
+          ${state.settings.logo ? `<img src="${state.settings.logo}" style="width:100%;height:100%;object-fit:cover;"/>` : "💊"}
+        </div>
+        <div style="font-family:var(--display);font-size:26px;font-weight:600;color:#fff;">${esc(state.settings.shopName)}</div>
+        <div style="color:#9fb0ab;font-size:13px;margin-top:4px;">सेल आणि पर्चेस व्यवस्थापन प्रणाली</div>
+      </div>
+      <div style="background:var(--paper);border-radius:16px;padding:26px;box-shadow:0 20px 50px rgba(0,0,0,.35);">
+        ${loginSyncBannerHTML()}
+        <label style="font-size:12.5px;opacity:.7;font-weight:600;">मोबाईल नंबर</label>
+        <input id="login-phone" placeholder="10 अंकी मोबाईल नंबर टाका" class="input" style="margin-top:6px;" />
+        <div id="login-err" style="color:var(--rose);font-size:12.5px;margin-top:8px;"></div>
+        <button id="login-submit" class="btn btn-teal" style="width:100%;margin-top:14px;padding:12px;font-size:15px;">लॉगिन करा</button>
+      </div>
+    </div>
+  </div>`;
+}
+function doLogin(num){
+  const cleanNum = String(num).trim();
+  const u = state.users.find(x=>String(x.phone).trim()===cleanNum);
+  if(!u){ document.getElementById("login-err").textContent = "हा मोबाईल नंबर नोंदणीकृत नाही. ॲडमिन/डेव्हलपरकडून नंबर मिळवा."; return; }
+  state.auth = { ...u };
+  render();
+}
+function bindLogin(){
+  document.getElementById("login-submit").addEventListener("click", () => doLogin(document.getElementById("login-phone").value.trim()));
+  document.getElementById("login-phone").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(e.target.value.trim()); });
+  const retry = document.getElementById("retry-sync");
+  if(retry) retry.addEventListener("click", retryBoot);
+}
+function renderLoading(){
+  return `<div style="min-height:100vh;background:var(--paper);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+    <div class="spinner"></div><div style="color:#8A8571;font-size:13px;">दुकानाचा डेटा लोड होत आहे...</div></div>`;
+}
+
+/* ================= SIDEBAR / TOPBAR ================= */
+const NAV_ITEMS = [
+  { id:"dashboard", label:"डॅशबोर्ड", icon:"🏠", roles:["user","admin","developer"] },
+  { id:"summary", label:"विक्री-खरेदी सारांश", icon:"📒", roles:["admin","developer"] },
+  { id:"outstanding", label:"उधारी (Outstanding)", icon:"💰", roles:["user","admin","developer"] },
+  { id:"pos", label:"सेल / बिलिंग", icon:"🛒", roles:["user","admin","developer"] },
+  { id:"purchase", label:"पर्चेस", icon:"🚚", roles:["admin","developer"] },
+  { id:"medicines", label:"मेडिसिन लायब्ररी", icon:"💊", roles:["admin","developer"] },
+  { id:"khata", label:"ग्राहक व उधारी", icon:"👥", roles:["user","admin","developer"] },
+  { id:"analytics", label:"अॅनालिटिक्स", icon:"📊", roles:["admin","developer"] },
+  { id:"reports", label:"प्रिंट / रिपोर्ट्स", icon:"🖨️", roles:["user","admin","developer"] },
+  { id:"settings", label:"सेटिंग्ज", icon:"⚙️", roles:["developer"] },
+];
+const TITLE_MAP = { dashboard:"डॅशबोर्ड", summary:"विक्री-खरेदी सारांश", outstanding:"उधारी (Outstanding)", pos:"सेल / बिलिंग (POS)", purchase:"पर्चेस व्यवस्थापन", medicines:"मेडिसिन लायब्ररी", khata:"ग्राहक व उधारी", analytics:"अॅनालिटिक्स", reports:"प्रिंट व रिपोर्ट्स", settings:"सेटिंग्ज (डेव्हलपर)" };
+
+function renderSidebar(){
+  const items = NAV_ITEMS.filter(it => it.roles.includes(state.auth.role)).map(it => `
+    <button data-nav="${it.id}" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:3px;border-radius:9px;border:none;cursor:pointer;text-align:left;
+      background:${state.screen===it.id ? "var(--teal)" : "transparent"};color:${state.screen===it.id ? "#fff" : "#B7C4BF"};font-size:13.8px;font-weight:${state.screen===it.id?600:500};">
+      <span>${it.icon}</span><span class="sidebar-nav-label" style="color:${state.screen===it.id ? '#fff' : '#FF6B6B'};font-weight:700;">${it.label}</span>
+    </button>`).join("");
+  return `
+  <div class="sidebar">
+    <div class="sidebar-brand" style="padding:20px 18px 14px;display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+        ${state.settings.logo ? `<img src="${state.settings.logo}" style="width:100%;height:100%;object-fit:cover;"/>` : "💊"}
+      </div>
+      <div><div style="font-family:var(--display);font-weight:600;color:#fff;font-size:15px;line-height:1.15;">${esc(state.settings.shopName)}</div><div style="color:#8A9691;font-size:10px;">${esc(state.settings.address)}</div></div>
+    </div>
+    <div class="sidebar-nav" style="flex:1;padding:10px;overflow-y:auto;">${items}</div>
+    <div class="sidebar-footer" style="padding:14px;border-top:1px solid #26332E;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:22px;">👤</span>
+        <div><div style="color:#fff;font-size:12.5px;font-weight:600;">${roleLabel[state.auth.role]}</div><div style="color:#8A9691;font-size:11px;">${esc(state.auth.phone)}</div></div>
+      </div>
+      <button id="logout-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid #33423C;color:#B7C4BF;padding:8px;border-radius:8px;font-size:12.5px;cursor:pointer;">⎋ लॉगआउट</button>
+      <div style="text-align:center;color:#4E5B55;font-size:9.5px;margin-top:10px;">${esc(state.settings.developer)}</div>
+    </div>
+  </div>`;
+}
+function renderTopbar(){
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #E7E2D3;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <button id="mobile-menu-btn" class="mobile-only" style="display:none;border:1.5px solid #E1DCCC;background:#fff;color:var(--rose);width:36px;height:36px;border-radius:9px;font-size:17px;cursor:pointer;flex-shrink:0;">☰</button>
+      ${state.screen!=="dashboard" ? `<button id="topbar-back" style="border:1.5px solid #E1DCCC;background:#fff;color:#5B5A4C;padding:7px 10px;border-radius:9px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">← मागे</button>` : ""}
+      <div style="min-width:0;">
+        <div style="font-family:var(--display);font-size:18px;font-weight:700;color:var(--rose);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${TITLE_MAP[state.screen]}</div>
+        <div class="topbar-sub" style="font-size:11px;color:#8A8571;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(state.settings.shopName)} · ${esc(state.settings.owner)} · GSTIN: ${esc(state.settings.gstin)}</div>
+      </div>
+    </div>
+    <div id="sync-badge" style="display:flex;align-items:center;gap:6px;background:#EAF3EF;color:var(--teal);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;flex-shrink:0;">${syncBadgeHTML()}</div>
+  </div>
+  ${renderMobileNavOverlay()}`;
+}
+function renderMobileNavOverlay(){
+  const items = NAV_ITEMS.filter(it => it.roles.includes(state.auth.role)).map(it => `
+    <button data-nav="${it.id}" class="mnav-item" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;border:none;cursor:pointer;text-align:left;margin-bottom:6px;
+      background:${state.screen===it.id ? "var(--teal)" : "#F8F6EF"};">
+      <span style="font-size:19px;">${it.icon}</span><span style="color:${state.screen===it.id ? '#fff' : '#D63447'};font-weight:700;font-size:15px;">${it.label}</span>
+    </button>`).join("");
+  return `<div id="mobile-nav-overlay" style="display:${state.mobileMenuOpen ? 'flex' : 'none'};position:fixed;inset:0;z-index:500;background:rgba(20,24,22,.55);">
+    <div style="background:var(--paper);width:82%;max-width:320px;height:100%;padding:18px 14px;overflow-y:auto;box-shadow:6px 0 24px rgba(0,0,0,.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div style="font-family:var(--display);font-weight:700;font-size:17px;color:var(--rose);">मेनू</div>
+        <button id="mobile-menu-close" style="border:none;background:#F1EDDF;width:32px;height:32px;border-radius:9px;font-size:15px;cursor:pointer;">✕</button>
+      </div>
+      ${items}
+      <div style="border-top:1px solid #E7E2D3;margin:14px 0;"></div>
+      <button id="logout-btn-mobile" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;background:#FBEAE8;border:none;color:var(--rose);padding:12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;">⎋ लॉगआउट</button>
+    </div>
+    <div style="flex:1;" id="mobile-nav-backdrop"></div>
+  </div>`;
+}
+function bindShell(){
+  document.querySelectorAll("[data-nav]").forEach(b => b.addEventListener("click", () => { state.screen = b.dataset.nav; state.reportPreview=null; state.mobileMenuOpen=false; render(); }));
+  document.getElementById("logout-btn").addEventListener("click", () => { state.auth = null; render(); });
+  const logoutMobile = document.getElementById("logout-btn-mobile");
+  if(logoutMobile) logoutMobile.addEventListener("click", () => { state.auth = null; render(); });
+  const backBtn = document.getElementById("topbar-back");
+  if(backBtn) backBtn.addEventListener("click", () => { state.screen = "dashboard"; state.reportPreview=null; render(); });
+  const menuBtn = document.getElementById("mobile-menu-btn");
+  if(menuBtn) menuBtn.addEventListener("click", () => { state.mobileMenuOpen = true; render(); });
+  const menuClose = document.getElementById("mobile-menu-close");
+  if(menuClose) menuClose.addEventListener("click", () => { state.mobileMenuOpen = false; render(); });
+  const backdrop = document.getElementById("mobile-nav-backdrop");
+  if(backdrop) backdrop.addEventListener("click", () => { state.mobileMenuOpen = false; render(); });
+}
+
+/* ================= GENERIC LIST MODAL (dashboard drilldowns) ================= */
+function openListModal(title, rows, opts){
+  opts = opts || {};
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  const rowAttr = (r) => opts.onRowClickId ? `class="clickable" data-listrow="${esc(r.__id)}"` : "";
+  document.getElementById("modal-root").innerHTML = `
+  <div class="modal-backdrop" id="modal-bg">
+    <div class="modal-box printable" id="list-modal-print">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div><div style="font-family:var(--display);font-size:19px;font-weight:600;">${esc(title)}</div>${opts.onRowClickId ? `<div class="no-print" style="font-size:11px;color:#8A8571;">👆 पूर्ण हिस्ट्री बघण्यासाठी नावावर क्लिक करा</div>` : ""}</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-outline" id="modal-print">🖨 प्रिंट</button>
+          <button class="btn btn-sm btn-outline" id="modal-close">✕ बंद करा</button>
+        </div>
+      </div>
+      <table><thead><tr>${headers.filter(h=>h!=="__id").map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.length ? rows.map(r=>`<tr ${rowAttr(r)}>${headers.filter(h=>h!=="__id").map(h=>`<td>${esc(r[h])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length||1}" style="text-align:center;color:#B0AB96;padding:20px;">डेटा उपलब्ध नाही</td></tr>`}</tbody></table>
+      ${opts.totalKey ? `<div style="text-align:right;font-weight:700;margin-top:12px;">एकूण: ${fmtINR(rows.reduce((s,r)=>s+Number(r[opts.totalKey]||0),0))}</div>` : ""}
+    </div>
+  </div>`;
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-print").addEventListener("click", printSection);
+  document.getElementById("modal-bg").addEventListener("click", e=>{ if(e.target.id==="modal-bg") closeModal(); });
+  if(opts.onRowClickId){
+    document.querySelectorAll("[data-listrow]").forEach(el=>el.addEventListener("click", ()=>opts.onRowClickId(el.dataset.listrow)));
+  }
+}
+function closeModal(){ document.getElementById("modal-root").innerHTML = ""; }
+function closeModal_then(fn){ return (id)=>{ closeModal(); fn(id); }; }
+
+/* ================= HISTORY MODALS ================= */
+function openMedicineHistory(medId){
+  const m = state.medicines.find(x=>x.id===medId);
+  if(!m) return;
+  const salesLines = [];
+  state.sales.forEach(s => (s.items||[]).forEach(it=>{ if(it.id===medId) salesLines.push({ date:s.date, qty:it.qty, amount:it.qty*it.mrp, customer:s.customer }); }));
+  const purch = state.purchases.filter(p=>p.medId===medId);
+  const rets = state.returns.filter(r=>r.medId===medId);
+  document.getElementById("modal-root").innerHTML = `
+  <div class="modal-backdrop" id="modal-bg">
+    <div class="modal-box printable" id="printable">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div><div style="font-family:var(--display);font-size:19px;font-weight:600;">${esc(m.name)} — संपूर्ण हिस्ट्री</div><div style="font-size:12px;color:#8A8571;">साल्ट: ${esc(m.salt)} · कंपनी: ${esc(m.mfr)} · बॅच: ${esc(m.batch)}</div></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-sm btn-outline" id="modal-print">🖨 प्रिंट</button><button class="btn btn-sm btn-outline" id="modal-close">✕ बंद करा</button></div>
+      </div>
+      <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="card" style="flex:1;min-width:130px;"><div style="font-size:11px;color:#8A8571;">सध्याचा साठा (STOCK)</div><div style="font-weight:700;font-size:17px;">${m.stock}</div></div>
+        <div class="card" style="flex:1;min-width:130px;"><div style="font-size:11px;color:#8A8571;">MRP</div><div style="font-weight:700;font-size:17px;">${fmtINR(m.mrp)}</div></div>
+        <div class="card" style="flex:1;min-width:130px;"><div style="font-size:11px;color:#8A8571;">एक्सपायरी स्टेटस</div><div style="font-weight:700;font-size:13px;color:${daysLeft(m.expiry)<0?'var(--rose)':'var(--marigold)'};">${expiryLabel(m.expiry)}</div></div>
+      </div>
+      <div style="font-weight:600;margin-bottom:6px;">विक्री (SALES)</div>
+      <table><thead><tr><th>दिनांक</th><th>ग्राहक</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th></tr></thead>
+      <tbody>${salesLines.length ? salesLines.map(s=>`<tr><td>${s.date.slice(0,10)}</td><td>${esc(s.customer)}</td><td>${s.qty}</td><td>${fmtINR(s.amount)}</td></tr>`).join("") : `<tr><td colspan="4" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+      <div style="font-weight:600;margin:16px 0 6px;">पर्चेस (PURCHASE)</div>
+      <table><thead><tr><th>दिनांक</th><th>बिल नं</th><th>विक्रेता</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th></tr></thead>
+      <tbody>${purch.length ? purch.map(p=>`<tr><td>${(p.date||'').slice(0,10)}</td><td>${esc(p.billNo||'-')}</td><td>${esc(p.vendor)}</td><td>${p.qty}</td><td>${fmtINR(p.cost)}</td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+      <div style="font-weight:600;margin:16px 0 6px;">परत केलेला माल (RETURNS)</div>
+      <table><thead><tr><th>दिनांक</th><th>विक्रेता</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th><th>आउटस्टँडिंगमधून वजा?</th></tr></thead>
+      <tbody>${rets.length ? rets.map(r=>`<tr><td>${r.date.slice(0,10)}</td><td>${esc(r.vendor)}</td><td>${r.qty}</td><td>${fmtINR(r.amount)}</td><td>${r.deducted?'होय':'नाही'}</td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+    </div>
+  </div>`;
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-print").addEventListener("click", printSection);
+  document.getElementById("modal-bg").addEventListener("click", e=>{ if(e.target.id==="modal-bg") closeModal(); });
+}
+function openVendorHistory(vendorId){
+  const v = state.vendors.find(x=>x.id===vendorId);
+  if(!v) return;
+  const purch = state.purchases.filter(p=>p.vendorId===vendorId);
+  const rets = state.returns.filter(r=>r.vendorId===vendorId);
+  const canEdit = state.auth.role !== "user";
+  document.getElementById("modal-root").innerHTML = `
+  <div class="modal-backdrop" id="modal-bg">
+    <div class="modal-box printable" id="printable">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div><div style="font-family:var(--display);font-size:19px;font-weight:600;">${esc(v.name)} — संपूर्ण हिस्ट्री</div><div style="font-size:12px;color:#8A8571;">फोन: ${esc(v.phone)} · GST: ${esc(v.gst)}</div></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-sm btn-outline" id="modal-print">🖨 प्रिंट</button><button class="btn btn-sm btn-outline" id="modal-close">✕ बंद करा</button></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;"><div style="font-size:11px;color:#8A8571;">सध्याची आउटस्टँडिंग (OUTSTANDING)</div><div style="font-weight:700;font-size:20px;color:${v.outstanding>0?'var(--rose)':'var(--leaf)'};">${fmtINR(v.outstanding)}</div>
+        ${canEdit ? `<button id="v-pay" class="btn btn-sm btn-teal" style="margin-top:8px;">₹ पेमेंट नोंदवा</button>` : ""}
+      </div>
+      <div style="font-weight:600;margin-bottom:6px;">पर्चेस हिस्ट्री (PURCHASE)</div>
+      <table><thead><tr><th>दिनांक</th><th>बिल नं</th><th>औषध</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th></tr></thead>
+      <tbody>${purch.length ? purch.map(p=>`<tr><td>${(p.date||'').slice(0,10)}</td><td>${esc(p.billNo||'-')}</td><td>${esc(p.medicine)}</td><td>${p.qty}</td><td>${fmtINR(p.cost)}</td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+      <div style="font-weight:600;margin:16px 0 6px;">परत केलेला माल (RETURNS)</div>
+      <table><thead><tr><th>दिनांक</th><th>औषध</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th><th>वजा झाले?</th></tr></thead>
+      <tbody>${rets.length ? rets.map(r=>`<tr><td>${r.date.slice(0,10)}</td><td>${esc(r.medicine)}</td><td>${r.qty}</td><td>${fmtINR(r.amount)}</td><td>${r.deducted?'होय':'नाही'}</td></tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+      <div style="font-weight:600;margin:16px 0 6px;">पेमेंट हिस्ट्री</div>
+      <table><thead><tr><th>दिनांक</th><th>रक्कम (AMOUNT)</th><th>टीप</th></tr></thead>
+      <tbody>${(v.payments||[]).length ? v.payments.map(p=>`<tr><td>${p.date.slice(0,10)}</td><td>${fmtINR(p.amount)}</td><td>${esc(p.note||'-')}</td></tr>`).join("") : `<tr><td colspan="3" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+    </div>
+  </div>`;
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-print").addEventListener("click", printSection);
+  document.getElementById("modal-bg").addEventListener("click", e=>{ if(e.target.id==="modal-bg") closeModal(); });
+  const payBtn = document.getElementById("v-pay");
+  if(payBtn) payBtn.addEventListener("click", ()=>{
+    const amt = Number(prompt("किती रक्कम पेमेंट केली? (₹)", ""));
+    if(!amt || amt<=0) return;
+    mutate(()=>{ v.outstanding = Math.max(0, v.outstanding - amt); v.payments = v.payments || []; v.payments.push({ date: new Date().toISOString(), amount: amt, note:"मॅन्युअल पेमेंट" }); });
+    openVendorHistory(vendorId);
+    if(state.screen==="purchase") render();
+  });
+}
+function openCustomerHistory(khataId){
+  const k = state.khata.find(x=>x.id===khataId);
+  if(!k) return;
+  const sales = state.sales.filter(s=> s.customerId ? s.customerId===khataId : s.customer===k.name);
+  document.getElementById("modal-root").innerHTML = `
+  <div class="modal-backdrop" id="modal-bg">
+    <div class="modal-box printable" id="printable">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div><div style="font-family:var(--display);font-size:19px;font-weight:600;">${esc(k.name)} — संपूर्ण हिस्ट्री</div><div style="font-size:12px;color:#8A8571;">फोन: ${esc(k.phone)}</div></div>
+        <div style="display:flex;gap:8px;"><button class="btn btn-sm btn-outline" id="modal-print">🖨 प्रिंट</button><button class="btn btn-sm btn-outline" id="modal-close">✕ बंद करा</button></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;"><div style="font-size:11px;color:#8A8571;">सध्याची उधारी बाकी (OUTSTANDING)</div><div style="font-weight:700;font-size:20px;color:${k.balance>0?'var(--rose)':'var(--leaf)'};">${fmtINR(k.balance)}</div>
+        <button id="k-pay" class="btn btn-sm btn-teal" style="margin-top:8px;">₹ वसुली नोंदवा</button>
+      </div>
+      <div style="font-weight:600;margin-bottom:6px;">खरेदी हिस्ट्री (SALES) — बिलावर क्लिक करून बिल पाहा/प्रिंट करा</div>
+      <table><thead><tr><th>दिनांक</th><th>बिल</th><th>रक्कम (AMOUNT)</th></tr></thead>
+      <tbody>${sales.length ? sales.map(s=>`<tr><td>${s.date.slice(0,10)}</td><td class="clickable" data-billhist="${s.id}">${s.id}</td><td>${fmtINR(s.total)}</td></tr>`).join("") : `<tr><td colspan="3" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+      <div style="font-weight:600;margin:16px 0 6px;">वसुली हिस्ट्री</div>
+      <table><thead><tr><th>दिनांक</th><th>रक्कम (AMOUNT)</th><th>टीप</th></tr></thead>
+      <tbody>${(k.payments||[]).length ? k.payments.map(p=>`<tr><td>${p.date.slice(0,10)}</td><td>${fmtINR(p.amount)}</td><td>${esc(p.note||'-')}</td></tr>`).join("") : `<tr><td colspan="3" style="text-align:center;color:#B0AB96;">डेटा नाही</td></tr>`}</tbody></table>
+    </div>
+  </div>`;
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-print").addEventListener("click", printSection);
+  document.getElementById("modal-bg").addEventListener("click", e=>{ if(e.target.id==="modal-bg") closeModal(); });
+  document.querySelectorAll("[data-billhist]").forEach(el=>el.addEventListener("click", ()=>openBillModal(el.dataset.billhist, khataId)));
+  document.getElementById("k-pay").addEventListener("click", ()=>{
+    const amt = Number(prompt("किती रक्कम वसुली झाली? (₹)", ""));
+    if(!amt || amt<=0) return;
+    mutate(()=>{ k.balance = Math.max(0, k.balance - amt); k.payments = k.payments || []; k.payments.push({ date: new Date().toISOString(), amount: amt, note:"उधारी वसुली" }); });
+    openCustomerHistory(khataId);
+    if(state.screen==="khata") render();
+  });
+}
+
+/* ================= SCREEN ROUTER ================= */
+function renderScreen(){
+  switch(state.screen){
+    case "dashboard": return renderDashboard();
+    case "summary": return renderSummary();
+    case "outstanding": return renderOutstandingHub();
+    case "pos": return renderPOS();
+    case "purchase": return renderPurchase();
+    case "medicines": return renderMedicines();
+    case "khata": return renderKhata();
+    case "analytics": return renderAnalytics();
+    case "reports": return renderReports();
+    case "settings": return renderSettings();
+    default: return "";
+  }
+}
+function bindScreen(){
+  switch(state.screen){
+    case "dashboard": return bindDashboard();
+    case "summary": return bindSummary();
+    case "outstanding": return bindOutstandingHub();
+    case "pos": return bindPOS();
+    case "purchase": return bindPurchase();
+    case "medicines": return bindMedicines();
+    case "khata": return bindKhata();
+    case "analytics": return bindAnalytics();
+    case "reports": return bindReports();
+    case "settings": return bindSettings();
+    default: return;
+  }
+}
+
+/* ================= DASHBOARD (सर्व कार्ड्स क्लिक करण्यायोग्य) ================= */
+function renderDashboard(){
+  const expiringSoon = state.medicines.filter(m=>daysLeft(m.expiry)<=60);
+  const tiles = [
+    { id:"summary", label:"विक्री-खरेदी सारांश", sub:"आजची व आतापर्यंतची सर्व बिले पाहा/प्रिंट/PDF", icon:"📒", color:"var(--teal)" },
+    { id:"purchase-reorder", label:"स्टॉक रीऑर्डर", sub:"लो-स्टॉक औषधांची यादी व थेट ऑर्डर", icon:"⚠️", color:"var(--rose)" },
+    { id:"outstanding", label:"उधारी (Outstanding)", sub:"ग्राहक + विक्रेता — दोन्ही बाकी एकत्र", icon:"💰", color:"var(--marigold)" },
+  ];
+  return `
+  <div style="padding:22px;">
+    <div class="grid-cards">
+      ${tiles.map(t=>`<div class="card card-click" data-dtile="${t.id}"><div style="width:34px;height:34px;border-radius:9px;background:${t.color}1a;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:16px;">${t.icon}</div>
+        <div style="font-family:var(--display);font-size:16px;font-weight:700;color:var(--rose);">${t.label}</div><div style="font-size:12px;color:#8A8571;margin-top:4px;">${t.sub}</div><div style="font-size:10.5px;color:var(--teal);margin-top:8px;">👁 उघडा →</div></div>`).join("")}
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <div style="font-weight:600;font-size:14.5px;margin-bottom:12px;">⏰ लवकर एक्सपायर होणारी औषधे</div>
+      ${expiringSoon.length ? expiringSoon.map(m=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F1EDDF;font-size:13.2px;"><span class="clickable" data-medhist="${m.id}">${esc(m.name)} <span style="color:#9A9581;font-weight:400;">(शिल्लक ${remainingStockOf(m)} ${m.unit||"नग"})</span></span><span style="color:var(--marigold);font-weight:600;">${expiryLabel(m.expiry)}</span></div>`).join("") : `<div style="font-size:13px;color:#9A9581;">सध्या काहीही एक्सपायर होत नाही.</div>`}
+    </div>
+    ${(state.auth.role==="admin"||state.auth.role==="developer") ? `<button id="wa-summary" class="btn" style="margin-top:20px;display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;">💬 आजचा सारांश व्हॉट्सॲपवर पाठवा</button>` : ""}
+  </div>`;
+}
+function bindDashboard(){
+  document.querySelectorAll("[data-medhist]").forEach(el=>el.addEventListener("click",()=>openMedicineHistory(el.dataset.medhist)));
+  const b = document.getElementById("wa-summary");
+  if(b) b.addEventListener("click", () => {
+    const todaySales = state.sales.filter(s=>isToday(s.date));
+    const todayTotal = todaySales.reduce((s,x)=>s+x.total,0);
+    const lowStock = state.medicines.filter(m=>m.stock<=m.reorder);
+    const totalKhata = state.khata.reduce((s,k)=>s+Number(k.balance||0),0);
+    const text = `*आजचा सारांश - ${state.settings.shopName}*%0Aविक्री: ${fmtINR(todayTotal)}%0Aआजचे बिल्स: ${todaySales.length}%0Aलो स्टॉक आयटम्स: ${lowStock.length}%0Aएकूण उधारी: ${fmtINR(totalKhata)}`;
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  });
+  document.querySelectorAll("[data-dtile]").forEach(el=>el.addEventListener("click", ()=>{
+    const kind = el.dataset.dtile;
+    if(kind==="purchase-reorder"){ state.screen="purchase"; state.purchTab="reorder"; }
+    else { state.screen = kind; }
+    render();
+  }));
+}
+
+/* ================= POS ================= */
+function medOptionLabel(m){ return `${m.name} · ${m.batch} · साठा ${m.stock} ${m.unit||"नग"}`; }
+function purchasedMedicines(list){ return (list||state.medicines).filter(m=>m.purchased); }
+function purchasedQtyOf(medId){ return state.purchases.filter(p=>p.medId===medId).reduce((s,p)=>s+(Number(p.qty)||0),0); }
+function soldQtyOf(medId){ return state.sales.reduce((s,sale)=>s + (sale.items||[]).filter(it=>it.id===medId).reduce((s2,it)=>s2+(Number(it.qty)||0),0), 0); }
+function remainingStockOf(m){ const p = purchasedQtyOf(m.id); return p>0 ? Math.max(0, p - soldQtyOf(m.id)) : m.stock; }
+function customerOptionLabel(k){ return `${k.name}${k.phone && k.phone!=='-' ? ' · '+k.phone : ''}`; }
+function findBillMatches(q){
+  q = (q||"").trim().toLowerCase();
+  if(!q) return [];
+  return state.sales.filter(s => s.id.toLowerCase().includes(q) || (s.customer||"").toLowerCase().includes(q)).slice(-20).reverse();
+}
+function renderPOS(){
+  const total = state.cart.reduce((s,x)=>s+x.qty*x.mrp,0);
+  const options = purchasedMedicines().map(m=>({ value:m.id, label: medOptionLabel(m) }));
+  const custOptions = state.khata.map(k=>({ value:k.id, label: customerOptionLabel(k) }));
+  const billMatches = findBillMatches(state.oldBillQuery);
+  return `
+  <div style="padding:22px;" class="pos-grid">
+    <div style="display:flex;flex-direction:column;min-height:0;">
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button data-channel="walkin" class="btn" style="flex:1;border:1.5px solid ${state.posChannel==='walkin'?'var(--teal)':'#E1DCCC'};background:${state.posChannel==='walkin'?'#EAF3EF':'#fff'};color:${state.posChannel==='walkin'?'var(--teal)':'#8A8571'};">वॉक-इन ग्राहक</button>
+        <button data-channel="online" class="btn" style="flex:1;border:1.5px solid ${state.posChannel==='online'?'var(--teal)':'#E1DCCC'};background:${state.posChannel==='online'?'#EAF3EF':'#fff'};color:${state.posChannel==='online'?'var(--teal)':'#8A8571'};">ऑनलाईन ऑर्डर</button>
+      </div>
+      ${state.editingSaleId ? `<div style="background:#FEF3E1;color:var(--marigold);padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+        <span>✏️ जुने बिल ${esc(state.editingSaleId)} संपादित करत आहात — नवीन आयटम जोडा व "बिल अपडेट करा" दाबा.</span>
+        <button id="pos-cancel-edit" class="btn btn-sm btn-outline">✕ रद्द</button>
+      </div>` : ""}
+      <div style="margin-bottom:12px;">${searchSelectHTML("pos-med", options, "", "टाईप करून शोधा...", "औषध शोधा (नाव/बॅच/कंपनी)")}</div>
+      <button id="pos-add-btn" class="btn btn-teal" style="margin-bottom:12px;">➕ बिलात जोडा</button>
+      <div id="pos-cart" style="flex:1;overflow-y:auto;background:#fff;border-radius:12px;border:1px solid #ECE7D8;">${cartHTML()}</div>
+      <div style="margin-top:14px;">
+        <label style="font-size:11.5px;color:#8A8571;font-weight:600;">🔎 जुने बिल शोधा (ग्राहकाचे नाव किंवा बिल नंबर)</label>
+        <input id="pos-oldbill" class="input" placeholder="उदा. सुरेश किंवा S004" value="${esc(state.oldBillQuery)}" style="margin:6px 0;" />
+        ${billMatches.length ? `<div style="background:#fff;border:1px solid #ECE7D8;border-radius:10px;max-height:160px;overflow-y:auto;">
+          ${billMatches.map(s=>`<div data-loadbill="${s.id}" style="padding:9px 12px;border-bottom:1px solid #F1EDDF;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;"><span>${esc(s.id)} · ${esc(s.customer)}</span><span style="color:#8A8571;">${s.date.slice(0,10)} · ${fmtINR(s.total)}</span></div>`).join("")}
+        </div>` : ""}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;">
+      <div id="pos-bill" class="printable" style="background:var(--paper);border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.08);overflow:hidden;flex:1;display:flex;flex-direction:column;">${billHTML()}</div>
+      <div style="margin-top:14px;">
+        <div style="margin-bottom:8px;">${searchSelectHTML("pos-cust", custOptions, "", "टाईप करून शोधा...", "जुना ग्राहक शोधा (किंवा खाली नवीन नाव टाका)")}</div>
+        <input id="pos-customer" class="input" placeholder="ग्राहकाचे नाव" value="${esc(state.posCustomer)}" style="margin-bottom:8px;" />
+        <input id="pos-customer-phone" class="input" placeholder="ग्राहकाचा मोबाईल नंबर (ओळख पक्की करण्यासाठी)" value="${esc(state.posCustomerPhone)}" style="margin-bottom:8px;" />
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:12px;cursor:pointer;"><input id="pos-khata" type="checkbox" ${state.posOnKhata?"checked":""}/> खातेवर (उधारी) नोंद करा</label>
+        <div style="display:flex;gap:8px;">
+          <button id="pos-complete" class="btn" style="flex:1;padding:13px;font-size:14px;font-weight:700;background:${state.cart.length?'var(--teal)':'#CFCABA'};color:#fff;cursor:${state.cart.length?'pointer':'not-allowed'};" ${state.cart.length?"":"disabled"}>${state.editingSaleId ? "बिल अपडेट करा" : "बिल तयार करा"} — ${fmtINR(total)}</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button id="pos-print" class="btn btn-outline" style="flex:1;">🖨 बिल प्रिंट</button>
+          <button id="pos-pdf" class="btn btn-outline" style="flex:1;">⬇ बिल PDF</button>
+        </div>
+        <div id="pos-toast">${state.posToast ? `<div style="margin-top:10px;background:#EAF7EF;color:var(--leaf);padding:9px 12px;border-radius:9px;font-size:12.5px;">✔ ${state.posToast}</div>` : ""}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function cartHTML(){
+  if(state.cart.length===0) return `<div style="padding:30px;text-align:center;color:#B0AB96;font-size:13px;">वरील शोधातून औषध निवडून "बिलात जोडा" दाबा.</div>`;
+  return state.cart.map(item=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #F1EDDF;">
+      <div><div style="font-weight:600;font-size:13.5px;">${esc(item.name)}</div><div style="font-size:11.5px;color:#9A9581;">${fmtINR(item.mrp)} × ${item.qty} नग (QTY)</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button data-qty="${item.id}:-1" style="width:24px;height:24px;border-radius:6px;border:1px solid #E1DCCC;background:#fff;cursor:pointer;">−</button>
+        <span style="width:18px;text-align:center;font-size:13px;font-weight:600;">${item.qty}</span>
+        <button data-qty="${item.id}:1" style="width:24px;height:24px;border-radius:6px;border:1px solid #E1DCCC;background:#fff;cursor:pointer;">+</button>
+        <button data-remove="${item.id}" style="width:24px;height:24px;border-radius:6px;border:none;background:#FBEAE8;color:var(--rose);cursor:pointer;">✕</button>
+      </div>
+    </div>`).join("");
+}
+function billHTML(){
+  const total = state.cart.reduce((s,x)=>s+x.qty*x.mrp,0);
+  return `<div style="padding:14px 22px 18px;flex:1;font-family:'Courier New',monospace;">
+    <div style="text-align:center;font-weight:700;font-size:15px;">${esc(state.settings.shopName)}</div>
+    <div style="text-align:center;font-size:10.5px;color:#8A8571;margin-bottom:10px;">${esc(state.settings.address)} · GSTIN: ${esc(state.settings.gstin)}</div>
+    <div style="border-top:1px dashed #C9C2A9;margin:8px 0;"></div>
+    <div style="font-size:11.5px;margin-bottom:2px;">ग्राहक: ${esc(state.posCustomer) || "Walk-in"} ${state.posCustomerPhone ? "· "+esc(state.posCustomerPhone) : ""}</div>
+    <div style="font-size:11.5px;margin-bottom:8px;">${state.editingSaleId ? "बिल नं: "+esc(state.editingSaleId)+" (संपादित)" : "नवीन बिल"} · चॅनेल: ${state.posChannel==='walkin'?'काउंटर':'ऑनलाईन'} · ${new Date().toLocaleString("en-IN")}</div>
+    <div style="border-top:1px dashed #C9C2A9;margin:8px 0;"></div>
+    ${state.cart.map(item=>`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>${esc(item.name)} ×${item.qty}</span><span>${fmtINR(item.mrp*item.qty)}</span></div>`).join("")}
+    <div style="border-top:1px dashed #C9C2A9;margin:10px 0;"></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;"><span>एकूण (AMOUNT)</span><span>${fmtINR(total)}</span></div>
+  </div>`;
+}
+function refreshPOSPartials(){
+  document.getElementById("pos-cart").innerHTML = cartHTML();
+  document.getElementById("pos-bill").innerHTML = billHTML();
+  bindCartButtons();
+  const total = state.cart.reduce((s,x)=>s+x.qty*x.mrp,0);
+  const completeBtn = document.getElementById("pos-complete");
+  completeBtn.textContent = `${state.editingSaleId ? "बिल अपडेट करा" : "बिल तयार करा"} — ${fmtINR(total)}`;
+  completeBtn.style.background = state.cart.length ? "var(--teal)" : "#CFCABA";
+  completeBtn.disabled = !state.cart.length;
+}
+function bindCartButtons(){
+  document.querySelectorAll("[data-qty]").forEach(el=>el.addEventListener("click",()=>{
+    const [id,delta] = el.dataset.qty.split(":");
+    const item = state.cart.find(x=>x.id===id);
+    const med = state.medicines.find(x=>x.id===id);
+    if(item) item.qty = Math.max(1, Math.min(item.qty+Number(delta), med ? med.stock : item.qty));
+    refreshPOSPartials();
+  }));
+  document.querySelectorAll("[data-remove]").forEach(el=>el.addEventListener("click",()=>{
+    state.cart = state.cart.filter(x=>x.id!==el.dataset.remove); refreshPOSPartials();
+  }));
+}
+function resetPOSForm(){
+  state.cart = []; state.posCustomer = ""; state.posCustomerPhone = ""; state.posOnKhata = false; state.editingSaleId = null; state.oldBillQuery = "";
+}
+function bindPOS(){
+  document.querySelectorAll("[data-channel]").forEach(b=>b.addEventListener("click",()=>{ state.posChannel=b.dataset.channel; render(); }));
+  const options = purchasedMedicines().map(m=>({ value:m.id, label: medOptionLabel(m) }));
+  bindSearchSelect("pos-med", options, (val)=>{ state.posSelectedMedId = val; });
+  const custOptions = state.khata.map(k=>({ value:k.id, label: customerOptionLabel(k) }));
+  bindSearchSelect("pos-cust", custOptions, (val)=>{
+    const k = state.khata.find(x=>x.id===val);
+    if(k){ state.posCustomer = k.name; state.posCustomerPhone = (k.phone && k.phone!=='-') ? k.phone : ""; render(); }
+  });
+  bindCartButtons();
+  document.getElementById("pos-add-btn").addEventListener("click", ()=>{
+    const id = state.posSelectedMedId || document.getElementById("pos-med-input").dataset.value;
+    const m = state.medicines.find(x=>x.id===id);
+    if(!m){ alert("कृपया यादीतून औषध निवडा."); return; }
+    if(m.stock<=0){ alert("या औषधाचा साठा शिल्लक नाही."); return; }
+    const ex = state.cart.find(x=>x.id===m.id);
+    if(ex) ex.qty = Math.min(ex.qty+1, m.stock); else state.cart.push({...m, qty:1});
+    setSelectValue("pos-med", "", "");
+    state.posSelectedMedId = "";
+    refreshPOSPartials();
+  });
+  const cust = document.getElementById("pos-customer");
+  cust.addEventListener("input", ()=>{ state.posCustomer = cust.value; document.getElementById("pos-bill").innerHTML = billHTML(); });
+  const custPhone = document.getElementById("pos-customer-phone");
+  custPhone.addEventListener("input", ()=>{ state.posCustomerPhone = custPhone.value; document.getElementById("pos-bill").innerHTML = billHTML(); });
+  document.getElementById("pos-khata").addEventListener("change", (e)=>{ state.posOnKhata = e.target.checked; });
+  document.getElementById("pos-print").addEventListener("click", ()=>{
+    if(state.lastBill) printBill(state.lastBill); else printSection();
+  });
+  document.getElementById("pos-pdf").addEventListener("click", ()=>{
+    if(state.lastBill) downloadBillPDF(state.lastBill);
+    else alert("आधी बिल तयार करा, मग PDF डाउनलोड करता येईल.");
+  });
+  const oldBillInput = document.getElementById("pos-oldbill");
+  oldBillInput.addEventListener("input", ()=>{ state.oldBillQuery = oldBillInput.value; render(); const el=document.getElementById("pos-oldbill"); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
+  document.querySelectorAll("[data-loadbill]").forEach(el=>el.addEventListener("click", ()=>{
+    const sale = state.sales.find(s=>s.id===el.dataset.loadbill);
+    if(!sale) return;
+    state.editingSaleId = sale.id;
+    state.cart = JSON.parse(JSON.stringify(sale.items||[]));
+    state.posCustomer = sale.customer;
+    state.posCustomerPhone = sale.customerPhone || "";
+    state.posChannel = sale.channel || "walkin";
+    state.oldBillQuery = "";
+    render();
+  }));
+  const cancelEdit = document.getElementById("pos-cancel-edit");
+  if(cancelEdit) cancelEdit.addEventListener("click", ()=>{ resetPOSForm(); render(); });
+  document.getElementById("pos-complete").addEventListener("click", ()=>{
+    if(state.cart.length===0) return;
+    const total = state.cart.reduce((s,x)=>s+x.qty*x.mrp,0);
+    const customer = getOrCreateCustomer(state.posCustomer, state.posCustomerPhone);
+
+    if(state.editingSaleId){
+      const sale = state.sales.find(s=>s.id===state.editingSaleId);
+      const originalQtyByMed = {};
+      (sale.items||[]).forEach(it=>{ originalQtyByMed[it.id] = (originalQtyByMed[it.id]||0) + it.qty; });
+      const newQtyByMed = {};
+      state.cart.forEach(it=>{ newQtyByMed[it.id] = (newQtyByMed[it.id]||0) + it.qty; });
+      const allMedIds = new Set([...Object.keys(originalQtyByMed), ...Object.keys(newQtyByMed)]);
+      allMedIds.forEach(id=>{
+        const delta = (newQtyByMed[id]||0) - (originalQtyByMed[id]||0);
+        const med = state.medicines.find(x=>x.id===id);
+        if(med && delta) med.stock = Math.max(0, med.stock - delta);
+      });
+      const oldTotal = sale.total;
+      sale.items = state.cart; sale.total = total; sale.customer = customer.name; sale.customerPhone = customer.phone; sale.channel = state.posChannel; sale.updatedAt = new Date().toISOString();
+      if(state.posOnKhata){ customer.balance = Math.max(0, customer.balance + (total - oldTotal)); }
+      state.lastBill = sale;
+      state.posToast = `बिल ${sale.id} अपडेट झाले — ${fmtINR(total)}.`;
+    } else {
+      state.cart.forEach(c=>{ const m = state.medicines.find(x=>x.id===c.id); if(m) m.stock -= c.qty; });
+      const sale = { id:"S"+(state.sales.length+1).toString().padStart(3,"0"), date:new Date().toISOString(), channel:state.posChannel, customer: customer.name, customerId: customer.id, customerPhone: customer.phone, items: state.cart, total };
+      state.sales.push(sale);
+      state.lastBill = sale;
+      if(state.posOnKhata) customer.balance += total;
+      state.posToast = `बिल ${sale.id} तयार झाले — ${fmtINR(total)}. आता प्रिंट/PDF घेता येईल.`;
+    }
+    resetPOSForm();
+    queueSaveToSheet(true);
+    render();
+    setTimeout(()=>{ state.posToast=""; const t=document.getElementById("pos-toast"); if(t) t.innerHTML=""; }, 4500);
+  });
+}
+
+/* ================= PURCHASE ================= */
+function ensurePurchForm(){
+  if(!state.purchForm) state.purchForm = { medId:"", vendorId:"", qtyMode:"units", qty:"", cost:"", numStrips:1, tabletsPerStrip:10, stripPrice:0, batch:"", expiry:"", billNo:"", date: todayStr(), payMode:"udhar", unit:"" };
+}
+function ensureReturnForm(){ if(!state.returnForm) state.returnForm = { medId:"", vendorId:"", qty:1 }; }
+
+function renderPurchase(){
+  ensurePurchForm(); ensureReturnForm();
+  const lowStock = purchasedMedicines().filter(m=>m.stock<=m.reorder);
+  const f = state.purchForm, rf = state.returnForm;
+  const medOptions = state.medicines.map(m=>({ value:m.id, label:`${m.name} · ${m.batch} · ${m.mfr}` }));
+  const vendorOptions = state.vendors.map(v=>({ value:v.id, label:v.name }));
+  const tabs = [["order","पर्चेस ऑर्डर"],["vendors","विक्रेते"],["reorder","स्टॉक रीऑर्डर"],["expiry","एक्सपायरी"],["returns","माल परत"]];
+  const totalTablets = f.qtyMode==="strips" ? (Number(f.numStrips)||0) * (Number(f.tabletsPerStrip)||0) : Number(f.qty)||0;
+  const perTabletCost = f.qtyMode==="strips" ? ((Number(f.tabletsPerStrip)||1) ? (Number(f.stripPrice)||0)/(Number(f.tabletsPerStrip)||1) : 0) : 0;
+  let body = "";
+  if(state.purchTab==="order"){
+    body = `
+    <div class="grid-2col">
+      <div class="card">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:14px;">मॅन्युअल पर्चेस एन्ट्री</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>${searchSelectHTML("p-med", medOptions, f.medId, "टाईप करून शोधा...", "औषध निवडा (नाव/बॅच/कंपनी)")}</div>
+          <div>${searchSelectHTML("p-vendor", vendorOptions, f.vendorId, "टाईप करून शोधा...", "विक्रेता निवडा")}</div>
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">पर्चेसचा दिनांक</label><input id="p-date" type="date" class="input" value="${f.date}" /></div>
+            <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">बिल नंबर</label><input id="p-billno" class="input" placeholder="बिल नंबर" value="${esc(f.billNo)}" /></div>
+          </div>
+          <select id="p-qtymode" class="input">
+            <option value="units" ${f.qtyMode==='units'?'selected':''}>नग (Units) मध्ये एंट्री</option>
+            <option value="strips" ${f.qtyMode==='strips'?'selected':''}>स्ट्रिप्समध्ये एंट्री (ऑटो कॅल्क्युलेशनसह)</option>
+          </select>
+          <div><label style="font-size:11px;color:#8A8571;">युनिट प्रकार (औषध निवडल्यास आपोआप येईल, बदलताही येईल)</label><select id="p-unit" class="input">${unitOptionsHTML(f.unit||"Tablet")}</select></div>
+          ${f.qtyMode==="units" ? `
+            <div style="display:flex;gap:10px;">
+              <input id="p-qty" type="number" class="input" placeholder="क्वांटिटी (QTY)" value="${f.qty}" />
+              <input id="p-cost" type="number" class="input" placeholder="एकूण किंमत (AMOUNT)" value="${f.cost}" />
+            </div>
+            <div id="p-per-unit-box" style="background:#F8F6EF;border-radius:8px;padding:8px 12px;font-size:12.5px;">प्रति-नग किंमत (आपोआप): <b id="p-per-unit-cost">${(Number(f.qty)>0 ? (Number(f.cost)/Number(f.qty)) : 0).toFixed(2)}</b></div>` : `
+            <div style="display:flex;gap:10px;">
+              <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">स्ट्रिपची संख्या</label><input id="p-numstrips" type="number" class="input" value="${f.numStrips}" /></div>
+              <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">1 स्ट्रिपमधील गोळ्या</label><input id="p-tabperstrip" type="number" class="input" value="${f.tabletsPerStrip}" /></div>
+            </div>
+            <div id="p-total-tablets-box" style="background:#F8F6EF;border-radius:8px;padding:8px 12px;font-size:12.5px;">एकूण गोळ्यांची संख्या (आपोआप): <b id="p-total-tablets">${totalTablets}</b></div>
+            <div style="display:flex;gap:10px;">
+              <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">1 स्ट्रिपची किंमत</label><input id="p-stripprice" type="number" class="input" value="${f.stripPrice}" /></div>
+              <div style="flex:1;"><label style="font-size:11px;color:#8A8571;">1 गोळीची किंमत (आपोआप)</label><input id="p-per-tablet-cost" class="input" value="${perTabletCost.toFixed(2)}" disabled style="background:#F5F2E5;" /></div>
+            </div>`}
+          <div style="display:flex;gap:10px;">
+            <input id="p-batch" class="input" placeholder="बॅच नंबर" value="${esc(f.batch)}" />
+            <input id="p-expiry" type="date" class="input" value="${f.expiry}" />
+          </div>
+          <div style="border-top:1px dashed #E1DCCC;margin:4px 0;"></div>
+          <div style="font-size:11px;color:#8A8571;font-weight:600;">विक्रेत्याचे बिल भरणा (Vendor Bill Payment)</div>
+          <select id="p-paymode" class="input">
+            <option value="udhar" ${f.payMode==='udhar'||!f.payMode?'selected':''}>उधार (आउटस्टँडिंगमध्ये जमा)</option>
+            <option value="cash" ${f.payMode==='cash'?'selected':''}>रोख (Cash)</option>
+            <option value="online" ${f.payMode==='online'?'selected':''}>ऑनलाईन (Online)</option>
+            <option value="cheque" ${f.payMode==='cheque'?'selected':''}>चेक (Cheque)</option>
+          </select>
+          <button id="p-submit" class="btn btn-teal">स्टॉकमध्ये जोडा</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:14px;">⚠️ लो स्टॉक — रीऑर्डर यादी (STOCK)</div>
+        ${lowStock.length===0?`<div style="font-size:13px;color:#9A9581;">सर्व स्टॉक पुरेसा आहे.</div>`:
+        lowStock.map(m=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F1EDDF;font-size:13px;"><span class="clickable" data-medhist="${m.id}">${esc(m.name)}</span><span style="color:var(--rose);font-weight:600;">${m.stock} / रीऑर्डर ${m.reorder}</span></div>`).join("")}
+        <div style="border-top:1px dashed #E1DCCC;margin:16px 0;"></div>
+        <div style="font-weight:600;font-size:13.5px;margin-bottom:10px;">अलीकडील पर्चेस</div>
+        ${state.purchases.slice(-6).reverse().map(p=>`<div style="font-size:12.5px;padding:6px 0;border-bottom:1px solid #F5F2E5;color:#5B5A4C;">${(p.date||'').slice(0,10)} · ${esc(p.medicine)} · ${p.qty} नग · ${esc(p.vendor)} · ${fmtINR(p.cost)} · बिल# ${esc(p.billNo||'-')}</div>`).join("")}
+      </div>
+    </div>`;
+  } else if(state.purchTab==="vendors"){
+    const nv = state.newVendor;
+    body = `
+      <div style="margin-bottom:16px;">
+        <button id="toggle-add-vendor" class="btn btn-teal">➕ नवीन विक्रेता जोडा</button>
+      </div>
+      ${state.showAddVendor ? `
+      <div class="card grid-2col" style="margin-bottom:16px;">
+        <input id="nv-name" class="input" placeholder="विक्रेत्याचे नाव" value="${esc(nv.name)}" />
+        <input id="nv-address" class="input" placeholder="पत्ता" value="${esc(nv.address)}" />
+        <input id="nv-phone" class="input" placeholder="मोबाईल नंबर" value="${esc(nv.phone)}" />
+        <input id="nv-email" class="input" placeholder="ईमेल आयडी" value="${esc(nv.email)}" />
+        <input id="nv-contactperson" class="input" placeholder="कॉन्टॅक्ट पर्सनचे नाव" value="${esc(nv.contactPerson)}" />
+        <input id="nv-contactphone" class="input" placeholder="कॉन्टॅक्ट पर्सनचा मोबाईल नंबर" value="${esc(nv.contactPhone)}" />
+        <input id="nv-dlno" class="input" placeholder="Drug License / Reg No. (DL/Reg No)" value="${esc(nv.dlNo)}" />
+        <input id="nv-gst" class="input" placeholder="GST नंबर" value="${esc(nv.gst)}" />
+        <input id="nv-vattin" class="input" placeholder="VAT / TIN नंबर" value="${esc(nv.vatTin)}" />
+        <input id="nv-pan" class="input" placeholder="PAN नंबर" value="${esc(nv.pan)}" />
+        <input id="nv-outstanding" type="number" class="input" placeholder="सुरुवातीची बाकी रक्कम (Outstanding, असल्यास)" value="${nv.outstanding}" />
+        <button id="nv-save" class="btn btn-teal" style="grid-column:span 2;">विक्रेता सेव्ह करा</button>
+      </div>` : ""}
+      <div class="card printable" style="padding:0;overflow:hidden;"><table><thead><tr><th>नाव</th><th>पत्ता</th><th>मोबाईल</th><th>DL/Reg No</th><th>GST</th><th>बाकी रक्कम (OUTSTANDING)</th><th class="no-print">डिलीट</th></tr></thead><tbody>
+      ${state.vendors.map(v=>`<tr><td class="clickable" data-vendorhist="${v.id}">${esc(v.name)}</td><td>${esc(v.address||"-")}</td><td>${esc(v.phone)}</td><td>${esc(v.dlNo||"-")}</td><td>${esc(v.gst)}</td><td style="color:${v.outstanding>0?'var(--rose)':'var(--leaf)'};font-weight:600;">${fmtINR(v.outstanding)}</td><td class="no-print"><button data-delvendor="${v.id}" style="border:none;background:#FBEAE8;color:var(--rose);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button></td></tr>`).join("")}
+      </tbody></table></div>
+      <button id="print-vendors" class="btn btn-outline" style="margin-top:12px;">🖨 आउटस्टँडिंग प्रिंट करा</button>`;
+  } else if(state.purchTab==="reorder"){
+    const lowStock = purchasedMedicines().filter(m=>m.stock<=m.reorder);
+    body = `<div class="card printable" style="padding:0;overflow:hidden;">
+      <table><thead><tr><th>औषध</th><th>बॅच</th><th>सध्याचा साठा (STOCK)</th><th>रीऑर्डर लेव्हल</th><th>सुचवलेली रीऑर्डर क्वांटिटी</th><th class="no-print">कृती</th></tr></thead><tbody>
+      ${lowStock.length ? lowStock.map(m=>`<tr><td class="clickable" data-medhist="${m.id}">${esc(m.name)}</td><td>${esc(m.batch)}</td><td style="color:var(--rose);font-weight:700;">${m.stock} ${m.unit||"नग"}</td><td>${m.reorder}</td><td>${Math.max(m.reorder*2 - m.stock, m.reorder)} ${m.unit||"नग"}</td><td class="no-print"><button data-reorder-med="${m.id}" class="btn btn-sm btn-teal">🚚 आत्ता ऑर्डर करा</button></td></tr>`).join("") : `<tr><td colspan="6" style="text-align:center;color:#B0AB96;padding:20px;">सर्व औषधांचा साठा पुरेसा आहे — रीऑर्डर करण्याची गरज नाही.</td></tr>`}
+      </tbody></table>
+    </div>
+    <button id="print-reorder" class="btn btn-outline" style="margin-top:12px;">🖨 रीऑर्डर यादी प्रिंट करा</button>`;
+  } else if(state.purchTab==="expiry"){
+    body = `<div class="card" style="padding:0;overflow:hidden;"><table><thead><tr><th>औषध</th><th>बॅच</th><th>एक्सपायरी</th><th>परतीयोग्य साठा</th><th>स्टेटस</th></tr></thead><tbody>
+      ${state.medicines.filter(m=>daysLeft(m.expiry)<=120).map(m=>`<tr><td class="clickable" data-medhist="${m.id}">${esc(m.name)}</td><td>${esc(m.batch)}</td><td>${m.expiry}</td><td>${availableToReturn(m.id)}</td>
+      <td><span style="background:${daysLeft(m.expiry)<0?'#FBEAE8':'#FEF3E1'};color:${daysLeft(m.expiry)<0?'var(--rose)':'var(--marigold)'};padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;">${expiryLabel(m.expiry)}</span></td></tr>`).join("")}
+      </tbody></table></div>`;
+  } else {
+    const selectedMed = state.medicines.find(m=>m.id===rf.medId);
+    const avail = rf.medId ? availableToReturn(rf.medId) : null;
+    body = `
+    <div class="grid-2col">
+      <div class="card">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:14px;">माल परत करा (Return to Vendor)</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>${searchSelectHTML("r-med", medOptions, rf.medId, "टाईप करून शोधा...", "औषध निवडा")}</div>
+          <div>${searchSelectHTML("r-vendor", vendorOptions, rf.vendorId, "टाईप करून शोधा...", "विक्रेता (औषध निवडल्यास आपोआप येईल)")}</div>
+          ${selectedMed ? `<div style="background:#F8F6EF;border-radius:8px;padding:8px 12px;font-size:12.5px;">या औषधाचा परतीयोग्य साठा (खरेदी − विक्री): <b>${avail}</b> नग</div>` : ""}
+          <input id="r-qty" type="number" class="input" placeholder="परत करायचे नग (QTY)" value="${rf.qty}" />
+          <button id="r-submit" class="btn btn-rose">↩ माल परत करा</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table><thead><tr><th>दिनांक</th><th>औषध</th><th>विक्रेता</th><th>नग (QTY)</th><th>रक्कम (AMOUNT)</th><th>वजा झाले?</th></tr></thead>
+        <tbody>${state.returns.length ? state.returns.slice().reverse().map(r=>`<tr><td>${r.date.slice(0,10)}</td><td>${esc(r.medicine)}</td><td class="clickable" data-vendorhist="${r.vendorId}">${esc(r.vendor)}</td><td>${r.qty}</td><td>${fmtINR(r.amount)}</td><td>${r.deducted?'होय':'नाही'}</td></tr>`).join("") : `<tr><td colspan="6" style="text-align:center;color:#B0AB96;padding:20px;">अजून कोणताही माल परत केलेला नाही.</td></tr>`}</tbody></table>
+      </div>
+    </div>`;
+  }
+  return `<div style="padding:22px;">
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+      ${tabs.map(([id,label])=>`<button data-ptab="${id}" class="btn" style="border:1.5px solid ${state.purchTab===id?'var(--teal)':'#E1DCCC'};background:${state.purchTab===id?'var(--teal)':'#fff'};color:${state.purchTab===id?'#fff':'#8A8571'};">${label}</button>`).join("")}
+    </div>
+    ${body}
+  </div>`;
+}
+function bindPurchase(){
+  document.querySelectorAll("[data-ptab]").forEach(b=>b.addEventListener("click",()=>{ state.purchTab=b.dataset.ptab; render(); }));
+  document.querySelectorAll("[data-medhist]").forEach(el=>el.addEventListener("click",()=>openMedicineHistory(el.dataset.medhist)));
+  document.querySelectorAll("[data-vendorhist]").forEach(el=>el.addEventListener("click",()=>openVendorHistory(el.dataset.vendorhist)));
+  const printReorder = document.getElementById("print-reorder");
+  if(printReorder) printReorder.addEventListener("click", printSection);
+  document.querySelectorAll("[data-reorder-med]").forEach(el=>el.addEventListener("click", ()=>{
+    const med = state.medicines.find(x=>x.id===el.dataset.reorderMed);
+    if(!med) return;
+    state.purchTab = "order";
+    state.purchForm = { medId: med.id, vendorId: state.vendors[0]?.id||"", qtyMode:"units", qty: Math.max(med.reorder*2 - med.stock, med.reorder), cost:0, numStrips:1, tabletsPerStrip: med.stripSize||10, stripPrice:0, batch:"", expiry:"", billNo:"", date: todayStr(), payMode:"udhar" };
+    render();
+  }));
+
+  if(state.purchTab==="order"){
+    const medOptions = state.medicines.map(m=>({ value:m.id, label:`${m.name} · ${m.batch} · ${m.mfr}` }));
+    const vendorOptions = state.vendors.map(v=>({ value:v.id, label:v.name }));
+    bindSearchSelect("p-med", medOptions, val=>{
+      state.purchForm.medId=val;
+      const med = state.medicines.find(m=>m.id===val);
+      if(med){
+        state.purchForm.tabletsPerStrip = med.stripSize || state.purchForm.tabletsPerStrip;
+        state.purchForm.unit = med.unit || state.purchForm.unit || "Tablet"; // शीट/मास्टरमधील युनिट आपोआप — पण खाली मॅन्युअली बदलताही येईल
+      }
+      render();
+    });
+    bindSearchSelect("p-vendor", vendorOptions, val=>state.purchForm.vendorId=val);
+    ["p-date","p-billno","p-batch","p-expiry"].forEach(id=>{
+      const el = document.getElementById(id);
+      const map = { "p-date":"date","p-billno":"billNo","p-batch":"batch","p-expiry":"expiry" };
+      el.addEventListener("input", ()=>{ state.purchForm[map[id]] = el.value; });
+    });
+    document.getElementById("p-qtymode").addEventListener("change", e=>{ state.purchForm.qtyMode = e.target.value; render(); });
+    document.getElementById("p-unit").addEventListener("change", e=>{ state.purchForm.unit = e.target.value; });
+    document.getElementById("p-paymode").addEventListener("change", e=>{ state.purchForm.payMode = e.target.value; });
+    if(state.purchForm.qtyMode==="units"){
+      const recalcUnits = ()=>{
+        const qty = Number(state.purchForm.qty)||0, cost = Number(state.purchForm.cost)||0;
+        const box = document.getElementById("p-per-unit-cost");
+        if(box) box.textContent = (qty>0 ? (cost/qty) : 0).toFixed(2);
+      };
+      document.getElementById("p-qty").addEventListener("input", e=>{ state.purchForm.qty=e.target.value; recalcUnits(); });
+      document.getElementById("p-cost").addEventListener("input", e=>{ state.purchForm.cost=e.target.value; recalcUnits(); });
+    } else {
+      // पूर्ण render() टाळला — त्यामुळे टायपिंग करताना कर्सर बाहेर जात होता. फक्त गणित केलेले आकडे थेट अपडेट करतो.
+      const recalcStrips = ()=>{
+        const f = state.purchForm;
+        const numStrips = Number(f.numStrips)||0, perStrip = Number(f.tabletsPerStrip)||0, stripPrice = Number(f.stripPrice)||0;
+        const totalTablets = numStrips * perStrip;
+        const perTabletCost = perStrip>0 ? (stripPrice/perStrip) : 0;
+        const totalBox = document.getElementById("p-total-tablets"); if(totalBox) totalBox.textContent = totalTablets;
+        const perTabBox = document.getElementById("p-per-tablet-cost"); if(perTabBox) perTabBox.value = perTabletCost.toFixed(2);
+      };
+      document.getElementById("p-numstrips").addEventListener("input", e=>{ state.purchForm.numStrips=e.target.value; recalcStrips(); });
+      document.getElementById("p-tabperstrip").addEventListener("input", e=>{ state.purchForm.tabletsPerStrip=e.target.value; recalcStrips(); });
+      document.getElementById("p-stripprice").addEventListener("input", e=>{ state.purchForm.stripPrice=e.target.value; recalcStrips(); });
+    }
+    document.getElementById("p-submit").addEventListener("click", ()=>{
+      const f = state.purchForm;
+      const med = state.medicines.find(m=>m.id===(f.medId||document.getElementById("p-med-input").dataset.value));
+      const vendor = state.vendors.find(v=>v.id===(f.vendorId||document.getElementById("p-vendor-input").dataset.value));
+      if(!med){ alert("कृपया औषध निवडा."); return; }
+      if(!vendor){ alert("कृपया विक्रेता निवडा."); return; }
+      let actualQty, totalCost, perUnitCost;
+      if(f.qtyMode==="strips"){
+        actualQty = (Number(f.numStrips)||0) * (Number(f.tabletsPerStrip)||0);
+        totalCost = (Number(f.numStrips)||0) * (Number(f.stripPrice)||0);
+        perUnitCost = (Number(f.tabletsPerStrip)||1) ? (Number(f.stripPrice)||0)/(Number(f.tabletsPerStrip)||1) : 0;
+        med.stripSize = Number(f.tabletsPerStrip)||med.stripSize;
+      } else {
+        actualQty = Number(f.qty)||0;
+        totalCost = Number(f.cost)||0;
+        perUnitCost = actualQty ? totalCost/actualQty : med.cost;
+      }
+      if(actualQty<=0){ alert("योग्य क्वांटिटी टाका."); return; }
+      med.stock += actualQty;
+      med.purchased = true;
+      if(f.unit) med.unit = f.unit;
+      if(f.batch) med.batch = f.batch;
+      if(f.expiry) med.expiry = f.expiry;
+      if(perUnitCost) med.cost = perUnitCost;
+      const payMode = f.payMode || "udhar";
+      if(payMode==="udhar"){
+        vendor.outstanding = (Number(vendor.outstanding)||0) + totalCost; // उधार — आउटस्टँडिंगमध्ये जमा
+      } else {
+        vendor.payments = vendor.payments || [];
+        vendor.payments.push({ date:f.date||todayStr(), billNo:f.billNo, amount:totalCost, mode:payMode }); // लगेच भरणा झाला — आउटस्टँडिंगमध्ये जमा नाही
+      }
+      state.purchases.push({ id:"P"+(state.purchases.length+1).toString().padStart(3,"0"), date:f.date||todayStr(), billNo:f.billNo, medicine: med.name, medId: med.id, vendor: vendor.name, vendorId: vendor.id, qty: actualQty, cost: totalCost, payMode });
+      state.purchForm = { medId:med.id, vendorId:vendor.id, qtyMode:"units", qty:"", cost:"", numStrips:1, tabletsPerStrip: med.stripSize||10, stripPrice:0, batch:"", expiry:"", billNo:"", date: todayStr(), payMode:"udhar", unit: med.unit||"Tablet" };
+      queueSaveToSheet(true);
+      render();
+    });
+  }
+  if(state.purchTab==="vendors"){
+    document.getElementById("toggle-add-vendor").addEventListener("click", ()=>{ state.showAddVendor=!state.showAddVendor; render(); });
+    const save = document.getElementById("nv-save");
+    if(save){
+      const bindF = (id,field)=>document.getElementById(id).addEventListener("input", e=>state.newVendor[field]=e.target.value);
+      bindF("nv-name","name"); bindF("nv-address","address"); bindF("nv-phone","phone"); bindF("nv-email","email");
+      bindF("nv-contactperson","contactPerson"); bindF("nv-contactphone","contactPhone"); bindF("nv-dlno","dlNo");
+      bindF("nv-gst","gst"); bindF("nv-vattin","vatTin"); bindF("nv-pan","pan"); bindF("nv-outstanding","outstanding");
+      save.addEventListener("click", ()=>{
+        const nv = state.newVendor;
+        if(!nv.name){ alert("विक्रेत्याचे नाव टाका."); return; }
+        state.vendors.push({ id:"V"+(state.vendors.length+1).toString().padStart(2,"0"), name:nv.name, address:nv.address, phone:nv.phone, email:nv.email, contactPerson:nv.contactPerson, contactPhone:nv.contactPhone, dlNo:nv.dlNo, gst:nv.gst, vatTin:nv.vatTin, pan:nv.pan, outstanding:Number(nv.outstanding)||0, payments:[] });
+        state.newVendor = { name:"", address:"", phone:"", email:"", contactPerson:"", contactPhone:"", dlNo:"", gst:"", vatTin:"", pan:"", outstanding:0 };
+        state.showAddVendor = false;
+        queueSaveToSheet(true);
+        render();
+      });
+    }
+    document.querySelectorAll("[data-delvendor]").forEach(el=>el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const v = state.vendors.find(x=>x.id===el.dataset.delvendor);
+      if(v && v.outstanding>0){ if(!confirm(`या विक्रेत्याची ${fmtINR(v.outstanding)} बाकी आहे. तरीही डिलीट करायचे?`)) return; }
+      else if(!confirm("हा विक्रेता नक्की डिलीट करायचा?")) return;
+      state.vendors = state.vendors.filter(x=>x.id!==el.dataset.delvendor);
+      queueSaveToSheet(true);
+      render();
+    }));
+    const pv = document.getElementById("print-vendors");
+    if(pv) pv.addEventListener("click", printSection);
+  }
+  if(state.purchTab==="returns"){
+    const medOptions = state.medicines.map(m=>({ value:m.id, label:`${m.name} · ${m.batch} · ${m.mfr}` }));
+    const vendorOptions = state.vendors.map(v=>({ value:v.id, label:v.name }));
+    bindSearchSelect("r-med", medOptions, val=>{
+      state.returnForm.medId = val;
+      const lastPurchase = state.purchases.filter(p=>p.medId===val).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+      if(lastPurchase){ state.returnForm.vendorId = lastPurchase.vendorId; }
+      render();
+    });
+    bindSearchSelect("r-vendor", vendorOptions, val=>state.returnForm.vendorId=val);
+    document.getElementById("r-qty").addEventListener("input", e=>state.returnForm.qty=e.target.value);
+    document.getElementById("r-submit").addEventListener("click", ()=>{
+      const rf = state.returnForm;
+      const med = state.medicines.find(m=>m.id===(rf.medId||document.getElementById("r-med-input").dataset.value));
+      const vendor = state.vendors.find(v=>v.id===(rf.vendorId||document.getElementById("r-vendor-input").dataset.value));
+      const qty = Number(rf.qty);
+      if(!med){ alert("कृपया औषध निवडा."); return; }
+      if(!vendor){ alert("कृपया विक्रेता निवडा."); return; }
+      if(!qty || qty<=0){ alert("योग्य क्वांटिटी टाका."); return; }
+      const max = availableToReturn(med.id);
+      if(qty > max){ alert(`कमाल परतीयोग्य साठा ${max} नग आहे.`); return; }
+      const amount = qty * (med.cost||0);
+      const wantDeduct = confirm(`या मालाची रक्कम ${fmtINR(amount)} विक्रेत्याच्या (${vendor.name}) आउटस्टँडिंगमधून कमी करायची का?`);
+      med.stock = Math.max(0, med.stock - qty);
+      if(wantDeduct) vendor.outstanding = Math.max(0, vendor.outstanding - amount);
+      state.returns.push({ id: uid("R"), date:new Date().toISOString(), medicine:med.name, medId:med.id, batch:med.batch, vendor:vendor.name, vendorId:vendor.id, qty, amount, deducted: wantDeduct });
+      state.returnForm = { medId:"", vendorId:"", qty:1 };
+      queueSaveToSheet(true);
+      render();
+    });
+  }
+}
+
+/* ================= MEDICINES ================= */
+function medMatchesQuery(m, q){
+  q = q.toLowerCase();
+  return m.name.toLowerCase().includes(q) || m.salt.toLowerCase().includes(q) || m.batch.toLowerCase().includes(q) || m.mfr.toLowerCase().includes(q) || (m.barcode||"").includes(q);
+}
+function renderMedicines(){
+  const filtered = purchasedMedicines().filter(m=>medMatchesQuery(m, state.medQuery));
+  const nm = state.newMed;
+  return `<div style="padding:22px;">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <input id="med-query" class="input" placeholder="नाव, साल्ट, बॅच नंबर किंवा कंपनीने शोधा..." value="${esc(state.medQuery)}" style="flex:1;min-width:200px;" />
+      <button id="med-toggle-add" class="btn btn-teal">➕ नवीन औषध</button>
+      <label class="btn btn-outline" style="margin:0;">📥 CSV/Excel/PDF अपलोड<input id="med-bulk-file" type="file" accept=".csv,.xlsx,.xls,.pdf" style="display:none;" /></label>
+    </div>
+    <div style="font-size:11.5px;color:#9A9581;margin:-10px 0 12px;">ℹ️ फक्त खरेदी (Purchase Entry) झालेली औषधे इथे व बिलिंगमध्ये दिसतात. नवीन नोंदवलेले औषध आधी "खरेदी" टॅबमधून खरेदी करा, मगच ते इथे दिसेल.</div>
+    ${state.medShowAdd ? `
+    <div class="card med-add-grid" style="margin-bottom:16px;">
+      <input id="nm-name" class="input" placeholder="औषधाचे नाव" value="${esc(nm.name)}" />
+      <input id="nm-salt" class="input" placeholder="साल्ट कंपोझिशन" value="${esc(nm.salt)}" />
+      <input id="nm-mfr" class="input" placeholder="मॅन्युफॅक्चरर" value="${esc(nm.mfr)}" />
+      <input id="nm-barcode" class="input" placeholder="बारकोड" value="${esc(nm.barcode)}" />
+      <select id="nm-unit" class="input">${unitOptionsHTML(nm.unit||"Tablet")}</select>
+      <input id="nm-mrp" type="number" class="input" placeholder="MRP" value="${esc(nm.mrp)}" />
+      <input id="nm-cost" type="number" class="input" placeholder="किंमत (Cost)" value="${esc(nm.cost)}" />
+      <input id="nm-stock" type="number" class="input" placeholder="साठा (STOCK) — असल्यास टाका" value="${esc(nm.stock)}" />
+      <input id="nm-stripsize" type="number" class="input" placeholder="स्ट्रिपमध्ये नग (उदा. 10)" value="${esc(nm.stripSize)}" />
+      <input id="nm-batch" class="input" placeholder="बॅच नंबर" value="${esc(nm.batch)}" />
+      <input id="nm-expiry" type="date" class="input" value="${nm.expiry}" />
+      <button id="nm-save" class="btn btn-teal" style="grid-column:span 2;">औषध सेव्ह करा (नोंदणी — बिलिंगसाठी आधी खरेदी नोंदवा)</button>
+    </div>` : ""}
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table><thead><tr><th>नाव</th><th>साल्ट</th><th>बॅच</th><th>मॅन्युफॅक्चरर</th><th>युनिट</th><th>MRP</th><th>साठा (STOCK)</th><th>एक्सपायरी</th><th class="no-print">डिलीट</th></tr></thead>
+      <tbody>${filtered.map(m=>`<tr><td class="clickable" data-medhist="${m.id}">${esc(m.name)}</td><td>${esc(m.salt)}</td><td>${esc(m.batch)}</td><td>${esc(m.mfr)}</td><td>${esc(m.unit||"नग")}</td><td>${fmtINR(m.mrp)}</td>
+        <td style="color:${m.stock<=m.reorder?'var(--rose)':'inherit'};font-weight:${m.stock<=m.reorder?600:400};">${m.stock}</td><td>${m.expiry}</td><td class="no-print"><button data-delmed="${m.id}" style="border:none;background:#FBEAE8;color:var(--rose);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button></td></tr>`).join("")}
+      </tbody></table>
+    </div>
+  </div>`;
+}
+function guessField(headerName){
+  const h = headerName.toLowerCase().trim();
+  if(h.includes("name")||h.includes("नाव")) return "name";
+  if(h.includes("salt")||h.includes("साल्ट")||h.includes("composition")) return "salt";
+  if(h.includes("mfr")||h.includes("manufact")||h.includes("company")||h.includes("कंपनी")) return "mfr";
+  if(h.includes("batch")||h.includes("बॅच")) return "batch";
+  if(h.includes("expiry")||h.includes("एक्सपायरी")) return "expiry";
+  if(h.includes("mrp")) return "mrp";
+  if(h.includes("cost")||h.includes("किंमत")) return "cost";
+  if(h.includes("stock")||h.includes("साठा")||h.includes("qty")) return "stock";
+  if(h.includes("strip")||h.includes("स्ट्रिप")) return "stripSize";
+  if(h.includes("barcode")||h.includes("बारकोड")) return "barcode";
+  return null;
+}
+function importRowsAsMedicines(rows){
+  let count = 0;
+  rows.forEach(row=>{
+    const med = { id:"", name:"",salt:"",mfr:"",batch:"",expiry:"",mrp:0,cost:0,stock:0,reorder:10,barcode:"",stripSize:1,unit:"Tablet" };
+    Object.keys(row).forEach(h=>{ const f = guessField(h); if(f) med[f] = row[h]; });
+    if(!med.name) return;
+    med.id = "M" + (state.medicines.length+1).toString().padStart(3,"0") + count;
+    med.mrp = Number(med.mrp)||0; med.cost = Number(med.cost)||0; med.stock = Number(med.stock)||0; med.stripSize = Number(med.stripSize)||1;
+    med.purchased = med.stock>0;
+    state.medicines.push(med);
+    count++;
+  });
+  return count;
+}
+function delMedHandler(medId){
+  const m = state.medicines.find(x=>x.id===medId);
+  if(!m) return;
+  if(!confirm(`"${m.name}" औषध डिलीट करायचे? (जुनी विक्री/खरेदी नोंद कायम राहील, फक्त हे औषध यादीतून जाईल.)`)) return;
+  state.medicines = state.medicines.filter(x=>x.id!==medId);
+  queueSaveToSheet(true);
+  render();
+}
+function bindMedicines(){
+  const q = document.getElementById("med-query");
+  q.addEventListener("input", ()=>{
+    state.medQuery=q.value;
+    const filtered = purchasedMedicines().filter(m=>medMatchesQuery(m, state.medQuery));
+    document.querySelector("#screen-root .card:last-child").innerHTML = `
+      <table><thead><tr><th>नाव</th><th>साल्ट</th><th>बॅच</th><th>मॅन्युफॅक्चरर</th><th>युनिट</th><th>MRP</th><th>साठा (STOCK)</th><th>एक्सपायरी</th><th class="no-print">डिलीट</th></tr></thead>
+      <tbody>${filtered.map(m=>`<tr><td class="clickable" data-medhist="${m.id}">${esc(m.name)}</td><td>${esc(m.salt)}</td><td>${esc(m.batch)}</td><td>${esc(m.mfr)}</td><td>${esc(m.unit||"नग")}</td><td>${fmtINR(m.mrp)}</td>
+        <td style="color:${m.stock<=m.reorder?'var(--rose)':'inherit'};font-weight:${m.stock<=m.reorder?600:400};">${m.stock}</td><td>${m.expiry}</td><td class="no-print"><button data-delmed="${m.id}" style="border:none;background:#FBEAE8;color:var(--rose);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button></td></tr>`).join("")}
+      </tbody></table>`;
+    document.querySelectorAll("[data-medhist]").forEach(el=>el.addEventListener("click",()=>openMedicineHistory(el.dataset.medhist)));
+    document.querySelectorAll("[data-delmed]").forEach(el=>el.addEventListener("click",(e)=>{ e.stopPropagation(); delMedHandler(el.dataset.delmed); }));
+  });
+  document.querySelectorAll("[data-medhist]").forEach(el=>el.addEventListener("click",()=>openMedicineHistory(el.dataset.medhist)));
+  document.querySelectorAll("[data-delmed]").forEach(el=>el.addEventListener("click",(e)=>{ e.stopPropagation(); delMedHandler(el.dataset.delmed); }));
+  document.getElementById("med-toggle-add").addEventListener("click", ()=>{ state.medShowAdd = !state.medShowAdd; render(); });
+  const save = document.getElementById("nm-save");
+  if(save){
+    const bindField = (id,field)=>document.getElementById(id).addEventListener("input", e=>{ state.newMed[field]=e.target.value; });
+    bindField("nm-name","name"); bindField("nm-salt","salt"); bindField("nm-mfr","mfr"); bindField("nm-barcode","barcode");
+    bindField("nm-mrp","mrp"); bindField("nm-cost","cost"); bindField("nm-stock","stock"); bindField("nm-stripsize","stripSize");
+    bindField("nm-batch","batch"); bindField("nm-expiry","expiry");
+    document.getElementById("nm-unit").addEventListener("change", e=>{ state.newMed.unit=e.target.value; });
+    save.addEventListener("click", ()=>{
+      const nm = state.newMed;
+      if(!nm.name){ alert("औषधाचे नाव टाका."); return; }
+      const initialStock = Number(nm.stock)||0;
+      state.medicines.push({ id:"M"+(state.medicines.length+1).toString().padStart(3,"0"), ...nm, mrp:Number(nm.mrp)||0, cost:Number(nm.cost)||0, stock:initialStock, reorder:10, stripSize:Number(nm.stripSize)||1, unit:nm.unit||"नग", purchased: initialStock>0 });
+      state.newMed = { name:"",salt:"",mfr:"",mrp:"",cost:"",stock:"",reorder:10,batch:"",expiry:"",barcode:"",stripSize:1,unit:"Tablet" };
+      state.medShowAdd = false;
+      queueSaveToSheet(true);
+      render();
+    });
+  }
+  document.getElementById("med-bulk-file").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    try{
+      if(ext==="csv" || ext==="xlsx" || ext==="xls"){
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type:"array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        const count = importRowsAsMedicines(rows);
+        queueSaveToSheet(true);
+        alert(`${count} औषधे यशस्वीरित्या जोडली.`);
+        render();
+      } else if(ext==="pdf"){
+        if(!window.pdfjsLib){ alert("PDF वाचण्यासाठी लायब्ररी लोड झालेली नाही, कृपया इंटरनेट तपासा."); return; }
+        const data = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data }).promise;
+        let lines = [];
+        for(let i=1;i<=doc.numPages;i++){
+          const page = await doc.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = content.items.map(it=>it.str).join(" ");
+          lines = lines.concat(pageText.split(/\n|\r/));
+        }
+        const rows = lines.filter(l=>l.trim()).map(l=>{
+          const parts = l.split(/,|\t/).map(p=>p.trim());
+          return { name: parts[0]||"", mrp: parts[1]||0, stock: parts[2]||0 };
+        });
+        const count = importRowsAsMedicines(rows);
+        queueSaveToSheet(true);
+        alert(`${count} नोंदी सापडल्या व जोडल्या (PDF मधून अचूकता मर्यादित असू शकते — शक्य असल्यास CSV/Excel वापरा).`);
+        render();
+      }
+    }catch(err){ alert("फाईल वाचताना अडचण आली: " + err); }
+  });
+}
+
+/* ================= KHATA / CUSTOMERS ================= */
+function renderKhata(){
+  const total = state.khata.reduce((s,k)=>s+Number(k.balance||0),0);
+  return `<div style="padding:22px;">
+    <div class="card" style="margin-bottom:16px;"><div style="font-size:12px;color:#8A8571;">एकूण उधारी (TOTAL OUTSTANDING)</div><div style="font-size:22px;font-weight:700;">${fmtINR(total)}</div></div>
+    <div class="card printable" style="padding:0;overflow:hidden;">
+      <table><thead><tr><th>ग्राहकाचे नाव</th><th>फोन</th><th>बाकी रक्कम (OUTSTANDING)</th><th class="no-print">डिलीट</th></tr></thead>
+      <tbody>${state.khata.map(k=>`<tr><td class="clickable" data-customerhist="${k.id}">${esc(k.name)}</td><td>${esc(k.phone)}</td><td style="color:${k.balance>0?'var(--rose)':'var(--leaf)'};font-weight:600;">${fmtINR(k.balance)}</td><td class="no-print"><button data-delcust="${k.id}" style="border:none;background:#FBEAE8;color:var(--rose);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">🗑</button></td></tr>`).join("")}</tbody></table>
+    </div>
+    <button id="print-khata" class="btn btn-outline" style="margin-top:12px;">🖨 उधारी प्रिंट करा</button>
+  </div>`;
+}
+function bindKhata(){
+  document.querySelectorAll("[data-customerhist]").forEach(el=>el.addEventListener("click",()=>openCustomerHistory(el.dataset.customerhist)));
+  document.getElementById("print-khata").addEventListener("click", printSection);
+  document.querySelectorAll("[data-delcust]").forEach(el=>el.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const k = state.khata.find(x=>x.id===el.dataset.delcust);
+    if(k && k.balance>0){ if(!confirm(`या ग्राहकाची ${fmtINR(k.balance)} बाकी आहे. तरीही डिलीट करायचे?`)) return; }
+    else if(!confirm("हा ग्राहक नक्की डिलीट करायचा?")) return;
+    state.khata = state.khata.filter(x=>x.id!==el.dataset.delcust);
+    queueSaveToSheet(true);
+    render();
+  }));
+}
+
+/* ================= ANALYTICS ================= */
+function renderAnalytics(){
+  const map = {};
+  state.sales.forEach(s => (s.items||[]).forEach(it => { map[it.name] = (map[it.name]||0) + it.qty; }));
+  let salesByMed = Object.entries(map).map(([name,qty])=>({name,qty}));
+  if(salesByMed.length===0) salesByMed = state.medicines.slice(0,5).map(m=>({name:m.name, qty: Math.floor(Math.random()*40)+5}));
+  salesByMed = salesByMed.sort((a,b)=>b.qty-a.qty).slice(0,6);
+  const maxQty = Math.max(...salesByMed.map(x=>x.qty), 1);
+  const profitData = state.medicines.map(m=>({name:m.name, profit:(m.mrp-m.cost)*Math.max(1, m.stock*0.3)})).sort((a,b)=>b.profit-a.profit).slice(0,5);
+  const maxProfit = Math.max(...profitData.map(x=>x.profit), 1);
+  const COLORS = ["#0F5C56","#E8A33D","#7C9C90","#C0453A","#3F8556","#8A8571"];
+  return `<div style="padding:22px;">
+    <div class="grid-2col">
+      <div class="card">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:14px;">📈 टॉप सेलिंग औषधे (QTY)</div>
+        ${salesByMed.map((d,i)=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>${esc(d.name)}</span><span style="font-weight:600;">${d.qty}</span></div>
+          <div style="background:#F1EDDF;border-radius:6px;height:10px;overflow:hidden;"><div style="width:${(d.qty/maxQty*100).toFixed(0)}%;height:100%;background:${COLORS[i%COLORS.length]};"></div></div></div>`).join("")}
+      </div>
+      <div class="card">
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:14px;">₹ सर्वाधिक नफ्याची औषधे (AMOUNT)</div>
+        ${profitData.map((d,i)=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>${esc(d.name)}</span><span style="font-weight:600;">${fmtINR(Math.round(d.profit))}</span></div>
+          <div style="background:#F1EDDF;border-radius:6px;height:10px;overflow:hidden;"><div style="width:${(d.profit/maxProfit*100).toFixed(0)}%;height:100%;background:${COLORS[i%COLORS.length]};"></div></div></div>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+function bindAnalytics(){}
+
+/* ================= विक्री-खरेदी सारांश (नवीन एकत्रित तक्ता) ================= */
+function renderSummary(){
+  const todaySales = state.sales.filter(s=>isToday(s.date));
+  const todayPurch = state.purchases.filter(p=>isToday(p.date));
+  const todaySalesTotal = todaySales.reduce((s,x)=>s+x.total,0);
+  const todayPurchTotal = todayPurch.reduce((s,x)=>s+Number(x.cost||0),0);
+  const allSalesTotal = state.sales.reduce((s,x)=>s+x.total,0);
+  const allPurchTotal = state.purchases.reduce((s,x)=>s+Number(x.cost||0),0);
+  const tiles = [
+    { label:"आजची विक्री (AMOUNT / बिल्स)", value:`${fmtINR(todaySalesTotal)} / ${todaySales.length}`, color:"var(--teal)" },
+    { label:"आजची खरेदी (AMOUNT / ऑर्डर्स)", value:`${fmtINR(todayPurchTotal)} / ${todayPurch.length}`, color:"var(--marigold)" },
+    { label:"आतापर्यंतची एकूण विक्री (AMOUNT / बिल्स)", value:`${fmtINR(allSalesTotal)} / ${state.sales.length}`, color:"var(--teal)" },
+    { label:"आतापर्यंतची एकूण खरेदी (AMOUNT / ऑर्डर्स)", value:`${fmtINR(allPurchTotal)} / ${state.purchases.length}`, color:"var(--marigold)" },
+  ];
+  const view = state.summaryView || "sales";
+  const rows = view==="sales" ? reportDataMap().sales : reportDataMap().purchase;
+  return `<div style="padding:22px;">
+    <div class="grid-cards">
+      ${tiles.map(t=>`<div class="card"><div style="font-family:var(--display);font-size:19px;font-weight:700;color:${t.color};">${t.value}</div><div style="font-size:12px;color:#8A8571;margin-top:4px;">${t.label}</div></div>`).join("")}
+    </div>
+    <div style="display:flex;gap:8px;margin:18px 0;flex-wrap:wrap;">
+      <button data-sview="sales" class="btn" style="border:1.5px solid ${view==='sales'?'var(--teal)':'#E1DCCC'};background:${view==='sales'?'var(--teal)':'#fff'};color:${view==='sales'?'#fff':'#8A8571'};">🧾 सर्व विक्री बिले</button>
+      <button data-sview="purchase" class="btn" style="border:1.5px solid ${view==='purchase'?'var(--teal)':'#E1DCCC'};background:${view==='purchase'?'var(--teal)':'#fff'};color:${view==='purchase'?'#fff':'#8A8571'};">🚚 सर्व खरेदी बिले</button>
+      <button id="sum-pdf" class="btn btn-ink">⬇ PDF</button>
+      <button id="sum-print" class="btn btn-outline">🖨 प्रिंट</button>
+    </div>
+    <div class="card printable" style="padding:0;overflow:hidden;">
+      ${rows.length===0 ? `<div style="padding:24px;text-align:center;color:#9A9581;font-size:13px;">अजून डेटा उपलब्ध नाही.</div>` :
+      `<table><thead><tr>${Object.keys(rows[0]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>${Object.values(r).map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
+    </div>
+  </div>`;
+}
+function bindSummary(){
+  document.querySelectorAll("[data-sview]").forEach(b=>b.addEventListener("click", ()=>{ state.summaryView = b.dataset.sview; render(); }));
+  const view = state.summaryView || "sales";
+  const rows = view==="sales" ? reportDataMap().sales : reportDataMap().purchase;
+  const title = view==="sales" ? "सर्व विक्री बिले" : "सर्व खरेदी बिले";
+  const pdf = document.getElementById("sum-pdf"), prt = document.getElementById("sum-print");
+  if(pdf) pdf.addEventListener("click", async ()=>{
+    pdf.disabled = true; pdf.textContent = "तयार होत आहे...";
+    await downloadPDFStyled(`${view}-summary.pdf`, title, rows, { totalKey: view==="sales"?"रक्कम_AMOUNT":"रक्कम_AMOUNT" });
+    pdf.disabled = false; pdf.textContent = "⬇ PDF";
+  });
+  if(prt) prt.addEventListener("click", ()=> printStyled(title, rows, { totalKey:"रक्कम_AMOUNT" }));
+}
+
+/* ================= उधारी (Outstanding) — ग्राहक + विक्रेता एकत्र ================= */
+function renderOutstandingHub(){
+  const totalKhata = state.khata.reduce((s,k)=>s+Number(k.balance||0),0);
+  const totalVendor = state.vendors.reduce((s,v)=>s+Number(v.outstanding||0),0);
+  return `<div style="padding:22px;">
+    <div class="grid-2col-13" style="margin-bottom:18px;">
+      <div class="card"><div style="font-size:12px;color:#8A8571;">ग्राहकांकडून येणे (एकूण)</div><div style="font-size:22px;font-weight:700;color:var(--sage);">${fmtINR(totalKhata)}</div></div>
+      <div class="card"><div style="font-size:12px;color:#8A8571;">विक्रेत्यांना देणे (एकूण)</div><div style="font-size:22px;font-weight:700;color:var(--marigold);">${fmtINR(totalVendor)}</div></div>
+    </div>
+    <div class="printable">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">👥 ग्राहक उधारी</div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+        <table><thead><tr><th>ग्राहक</th><th>फोन</th><th>बाकी</th></tr></thead>
+        <tbody>${state.khata.map(k=>`<tr><td class="clickable" data-customerhist="${k.id}">${esc(k.name)}</td><td>${esc(k.phone)}</td><td style="color:${k.balance>0?'var(--rose)':'var(--leaf)'};font-weight:600;">${fmtINR(k.balance)}</td></tr>`).join("")}</tbody></table>
+      </div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">🚚 विक्रेता आउटस्टँडिंग</div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table><thead><tr><th>विक्रेता</th><th>फोन</th><th>देणे</th></tr></thead>
+        <tbody>${state.vendors.map(v=>`<tr><td class="clickable" data-vendorhist="${v.id}">${esc(v.name)}</td><td>${esc(v.phone)}</td><td style="color:${v.outstanding>0?'var(--rose)':'var(--leaf)'};font-weight:600;">${fmtINR(v.outstanding)}</td></tr>`).join("")}</tbody></table>
+      </div>
+    </div>
+    <button id="print-outstanding-hub" class="btn btn-outline no-print" style="margin-top:12px;">🖨 दोन्ही यादी प्रिंट करा</button>
+  </div>`;
+}
+function bindOutstandingHub(){
+  document.querySelectorAll("[data-customerhist]").forEach(el=>el.addEventListener("click",()=>openCustomerHistory(el.dataset.customerhist)));
+  document.querySelectorAll("[data-vendorhist]").forEach(el=>el.addEventListener("click",()=>openVendorHistory(el.dataset.vendorhist)));
+  const b = document.getElementById("print-outstanding-hub");
+  if(b) b.addEventListener("click", printSection);
+}
+
+/* ================= REPORTS ================= */
+function reportDataMap(){
+  return {
+    sales: state.sales.map(s=>({ बिल:s.id, दिनांक:s.date.slice(0,10), ग्राहक:s.customer, चॅनेल:s.channel, "रक्कम_AMOUNT":s.total })),
+    purchase: state.purchases.map(p=>({ ऑर्डर:p.id, दिनांक:(p.date||'').slice(0,10), बिल_नं:p.billNo||'-', औषध:p.medicine, विक्रेता:p.vendor, "नग_QTY":p.qty, "रक्कम_AMOUNT":p.cost })),
+    stock: state.medicines.map(m=>({ औषध:m.name, "साठा_STOCK":m.stock, रीऑर्डर_लेव्हल:m.reorder, MRP:m.mrp })),
+    expiry: state.medicines.filter(m=>daysLeft(m.expiry)<=120).map(m=>({ औषध:m.name, बॅच:m.batch, "खरेदी_केलेले_नग":purchasedQtyOf(m.id), "विकलेले_नग":soldQtyOf(m.id), "शिल्लक_साठा_STOCK":remainingStockOf(m), एक्सपायरी:m.expiry, स्टेटस: expiryLabel(m.expiry) })),
+    returns: state.returns.map(r=>({ दिनांक:r.date.slice(0,10), औषध:r.medicine, विक्रेता:r.vendor, "नग_QTY":r.qty, "रक्कम_AMOUNT":r.amount, वजा_झाले: r.deducted?"होय":"नाही" })),
+    outstanding: state.khata.map(k=>({ ग्राहक:k.name, फोन:k.phone, "बाकी_AMOUNT":k.balance })),
+    vendorOutstanding: state.vendors.map(v=>({ विक्रेता:v.name, फोन:v.phone, "बाकी_AMOUNT":v.outstanding })),
+  };
+}
+const TYPE_LABELS = { sales:"सेल", purchase:"पर्चेस", stock:"स्टॉक", expiry:"एक्सपायरी", returns:"रिटर्न माल", outstanding:"ग्राहक उधारी", vendorOutstanding:"विक्रेता आउटस्टँडिंग" };
+const PERIOD_LABELS = { daily:"रोजचे", weekly:"आठवड्याचे", fortnightly:"पंधरा दिवसाचे", monthly:"महिन्याचे" };
+const TOTAL_KEY_MAP = { sales:"रक्कम_AMOUNT", purchase:"रक्कम_AMOUNT", returns:"रक्कम_AMOUNT", outstanding:"बाकी_AMOUNT", vendorOutstanding:"बाकी_AMOUNT" };
+
+function renderReports(){
+  return `<div style="padding:22px;">
+    <div class="card" style="margin-bottom:18px;">
+      <div style="font-weight:600;font-size:14.5px;margin-bottom:16px;">कोणती प्रिंट काढायची आहे?</div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;color:#8A8571;font-weight:600;margin-bottom:8px;">प्रकार</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${Object.keys(TYPE_LABELS).map(k=>`<button data-rtype="${k}" style="padding:8px 14px;border-radius:20px;border:1.5px solid ${state.reportType===k?'var(--teal)':'#E1DCCC'};background:${state.reportType===k?'var(--teal)':'#fff'};color:${state.reportType===k?'#fff':'#8A8571'};font-size:12.5px;font-weight:600;cursor:pointer;">${TYPE_LABELS[k]}</button>`).join("")}</div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;color:#8A8571;font-weight:600;margin-bottom:8px;">कालावधी</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${Object.keys(PERIOD_LABELS).map(k=>`<button data-rperiod="${k}" style="padding:8px 14px;border-radius:20px;border:1.5px solid ${state.reportPeriod===k?'var(--marigold)':'#E1DCCC'};background:${state.reportPeriod===k?'var(--marigold)':'#fff'};color:${state.reportPeriod===k?'#fff':'#8A8571'};font-size:12.5px;font-weight:600;cursor:pointer;">${PERIOD_LABELS[k]}</button>`).join("")}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="r-generate" class="btn btn-teal">👁 प्रिव्ह्यू तयार करा</button>
+        ${state.reportPreview ? `
+          <button id="r-csv" class="btn btn-ink">⬇ CSV</button>
+          <button id="r-excel" class="btn btn-ink">⬇ EXCEL</button>
+          <button id="r-pdf" class="btn btn-ink">⬇ PDF</button>
+          <button id="r-print" class="btn btn-outline">🖨 डायरेक्ट प्रिंट</button>` : ""}
+      </div>
+    </div>
+    <div id="report-preview-area">
+    ${state.reportPreview ? `
+      <div class="card" style="padding:0;overflow:hidden;">
+        ${state.reportPreview.rows.length===0 ? `<div style="padding:24px;text-align:center;color:#9A9581;font-size:13px;">या प्रकारासाठी सध्या डेटा उपलब्ध नाही.</div>` :
+        `<table><thead><tr>${Object.keys(state.reportPreview.rows[0]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead>
+        <tbody>${state.reportPreview.rows.map(r=>`<tr>${Object.values(r).map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
+      </div>` : ""}
+    </div>
+  </div>`;
+}
+function bindReports(){
+  document.querySelectorAll("[data-rtype]").forEach(b=>b.addEventListener("click",()=>{ state.reportType=b.dataset.rtype; state.reportPreview=null; render(); }));
+  document.querySelectorAll("[data-rperiod]").forEach(b=>b.addEventListener("click",()=>{ state.reportPeriod=b.dataset.rperiod; render(); }));
+  document.getElementById("r-generate").addEventListener("click",()=>{
+    const dm = reportDataMap();
+    state.reportPreview = { rows: dm[state.reportType] || [] };
+    render();
+  });
+  const csv = document.getElementById("r-csv"), xls = document.getElementById("r-excel"), pdf = document.getElementById("r-pdf"), prt = document.getElementById("r-print");
+  if(csv) csv.addEventListener("click",()=> downloadCSV(`${state.reportType}-${state.reportPeriod}.csv`, state.reportPreview.rows));
+  if(xls) xls.addEventListener("click",()=> downloadExcel(`${state.reportType}-${state.reportPeriod}.xlsx`, state.reportPreview.rows));
+  if(pdf) pdf.addEventListener("click", async ()=>{
+    pdf.disabled = true; pdf.textContent = "तयार होत आहे...";
+    await downloadPDFStyled(`${state.reportType}-${state.reportPeriod}.pdf`, TYPE_LABELS[state.reportType], state.reportPreview.rows, { totalKey: TOTAL_KEY_MAP[state.reportType] });
+    pdf.disabled = false; pdf.textContent = "⬇ PDF";
+  });
+  if(prt) prt.addEventListener("click", ()=> printStyled(TYPE_LABELS[state.reportType], state.reportPreview.rows, { totalKey: TOTAL_KEY_MAP[state.reportType] }));
+}
+
+/* ================= SETTINGS (developer only) ================= */
+function renderSettings(){
+  const s = state.settings;
+  const nu = state.newUserForm;
+  return `<div style="padding:22px;" class="grid-2col">
+    <div class="card">
+      <div style="font-weight:600;font-size:15px;margin-bottom:14px;">दुकान माहिती (Branding)</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:12px;color:#8A8571;">दुकानाचे नाव</label>
+        <input id="st-name" class="input" value="${esc(s.shopName)}" />
+        <label style="font-size:12px;color:#8A8571;">पत्ता</label>
+        <input id="st-address" class="input" value="${esc(s.address)}" />
+        <label style="font-size:12px;color:#8A8571;">मालकाचे नाव</label>
+        <input id="st-owner" class="input" value="${esc(s.owner)}" />
+        <label style="font-size:12px;color:#8A8571;">मालकाचा मोबाईल नंबर (बिल PDF वर दिसतो)</label>
+        <input id="st-ownerphone" class="input" value="${esc(s.ownerPhone||'')}" />
+        <label style="font-size:12px;color:#8A8571;">GSTIN</label>
+        <input id="st-gstin" class="input" value="${esc(s.gstin)}" />
+        <label style="font-size:12px;color:#8A8571;">दुकानाचा UPI ID (उदा. shopname@upi) — बिलावर पेमेंट QR दाखवण्यासाठी</label>
+        <input id="st-upi" class="input" placeholder="उदा. shreepharmacy@okhdfcbank" value="${esc(s.upiId||'')}" />
+        ${s.upiId ? `<div style="text-align:center;"><img src="${buildUPIQRDataURL(1, 'Test') || ''}" style="width:90px;height:90px;" /><div style="font-size:11px;color:#8A8571;">नमुना QR (₹1 साठी) — प्रत्यक्ष बिलावर योग्य रक्कम आपोआप येईल</div></div>` : ""}
+        <label style="font-size:12px;color:#8A8571;">लोगो (इमेज फाईल निवडा)</label>
+        <input id="st-logo" type="file" accept="image/*" class="input" />
+        ${s.logo ? `<img src="${s.logo}" style="width:60px;height:60px;object-fit:cover;border-radius:10px;border:1px solid #E1DCCC;" />` : ""}
+        <button id="st-save" class="btn btn-teal">सेव्ह करा</button>
+      </div>
+      <div style="border-top:1px dashed #E1DCCC;margin:16px 0;"></div>
+      <div style="font-weight:600;font-size:13.5px;margin-bottom:8px;">डेव्हलपर क्रेडिट लाईन (सर्व पानांच्या तळाशी दिसते)</div>
+      <input id="st-dev" class="input" value="${esc(s.developer)}" />
+      <button id="st-dev-save" class="btn btn-teal" style="margin-top:10px;">क्रेडिट सेव्ह करा</button>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:18px;">
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">🖨 प्रिंटर सेटिंग्ज</div>
+        <label style="font-size:12px;color:#8A8571;">कागदाचा आकार (Print Paper Size)</label>
+        <select id="st-printpaper" class="input" style="margin-top:6px;">
+          <option value="thermal80" ${s.printPaper==='thermal80'||!s.printPaper?'selected':''}>थर्मल प्रिंटर — 80mm रोल</option>
+          <option value="thermal58" ${s.printPaper==='thermal58'?'selected':''}>थर्मल प्रिंटर — 58mm रोल</option>
+          <option value="a4" ${s.printPaper==='a4'?'selected':''}>A4 पेपर</option>
+        </select>
+        <button id="st-printpaper-save" class="btn btn-teal" style="margin-top:10px;width:100%;">प्रिंटर सेटिंग सेव्ह करा</button>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">बॅकअप व सिंक</div>
+        <div style="font-size:12.5px;color:#5B5A4C;margin-bottom:12px;">Google Sheet सिंक स्टेटस: ${SHEET_API_URL.indexOf("PASTE_YOUR")===0 ? "⚠️ कॉन्फिगर केलेले नाही." : "✅ कॉन्फिगर केलेले"}</div>
+        <button id="st-backup-drive" class="btn btn-outline" style="margin-bottom:10px;width:100%;">☁ Google Drive वर बॅकअप घ्या आत्ता</button>
+        <button id="st-backup-file" class="btn btn-outline" style="width:100%;">💾 डेटा फाईल डाउनलोड करा (PC/मोबाईल/पेनड्राईव्ह)</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:600;font-size:15px;margin-bottom:14px;">युजर व्यवस्थापन (User / Admin बनवा)</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <input id="nu-phone" class="input" placeholder="मोबाईल नंबर" value="${esc(nu.phone)}" style="flex:1;min-width:140px;" />
+          <select id="nu-role" class="input" style="max-width:150px;">
+            <option value="user" ${nu.role==='user'?'selected':''}>युजर</option>
+            <option value="admin" ${nu.role==='admin'?'selected':''}>ॲडमिन</option>
+            <option value="developer" ${nu.role==='developer'?'selected':''}>डेव्हलपर</option>
+          </select>
+          <button id="nu-add" class="btn btn-teal">➕ जोडा</button>
+        </div>
+        <table><thead><tr><th>मोबाईल नंबर</th><th>रोल</th><th></th></tr></thead>
+        <tbody>${state.users.map((u,i)=>`<tr><td>${esc(u.phone)}</td><td><span style="color:${roleColor[u.role]};font-weight:600;">${roleLabel[u.role]}</span></td><td><button data-deluser="${i}" class="btn btn-sm btn-outline">काढा</button></td></tr>`).join("")}</tbody></table>
+      </div>
+    </div>
+  </div>`;
+}
+function bindSettings(){
+  document.getElementById("st-save").addEventListener("click", ()=>{
+    const fileInput = document.getElementById("st-logo");
+    const applyAndSave = () => {
+      mutate(()=>{
+        state.settings.shopName = document.getElementById("st-name").value || state.settings.shopName;
+        state.settings.address = document.getElementById("st-address").value;
+        state.settings.owner = document.getElementById("st-owner").value;
+        state.settings.ownerPhone = document.getElementById("st-ownerphone").value;
+        state.settings.gstin = document.getElementById("st-gstin").value;
+        state.settings.upiId = document.getElementById("st-upi").value.trim();
+      }, true);
+      render();
+    };
+    if(fileInput.files && fileInput.files[0]){
+      const reader = new FileReader();
+      reader.onload = () => { state.settings.logo = reader.result; applyAndSave(); };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else applyAndSave();
+  });
+  document.getElementById("st-dev-save").addEventListener("click", ()=>{
+    mutate(()=>{ state.settings.developer = document.getElementById("st-dev").value; }, true);
+    render();
+  });
+  document.getElementById("st-printpaper-save").addEventListener("click", ()=>{
+    mutate(()=>{ state.settings.printPaper = document.getElementById("st-printpaper").value; }, true);
+    document.body.setAttribute("data-print-paper", state.settings.printPaper);
+    alert("प्रिंटर सेटिंग सेव्ह झाली.");
+  });
+  document.getElementById("st-backup-drive").addEventListener("click", backupToDriveNow);
+  document.getElementById("st-backup-file").addEventListener("click", downloadJSONBackup);
+  document.getElementById("nu-phone").addEventListener("input", e=>state.newUserForm.phone=e.target.value.trim());
+  document.getElementById("nu-role").addEventListener("change", e=>state.newUserForm.role=e.target.value);
+  document.getElementById("nu-add").addEventListener("click", ()=>{
+    const nu = state.newUserForm;
+    if(!/^\d{6,15}$/.test(nu.phone)){ alert("कृपया योग्य मोबाईल नंबर टाका."); return; }
+    if(state.users.some(u=>String(u.phone).trim()===nu.phone)){ alert("हा नंबर आधीच नोंदणीकृत आहे."); return; }
+    state.users.push({ phone:nu.phone, role:nu.role, label: roleLabel[nu.role] });
+    state.newUserForm = { phone:"", role:"user" };
+    queueSaveToSheet(true);
+    render();
+  });
+  document.querySelectorAll("[data-deluser]").forEach(el=>el.addEventListener("click",()=>{
+    const idx = Number(el.dataset.deluser);
+    if(state.users[idx].phone === state.auth.phone){ alert("तुम्ही सध्या लॉगिन असलेला नंबर काढू शकत नाही."); return; }
+    if(!confirm("हा युजर काढायचा आहे का?")) return;
+    state.users.splice(idx,1);
+    queueSaveToSheet(true);
+    render();
+  }));
+}
+
+/* ================= START ================= */
+boot();
+</script>
+</body>
+</html>
